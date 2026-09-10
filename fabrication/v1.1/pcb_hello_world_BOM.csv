@@ -1,0 +1,31 @@
+Reference,Quantity,Value,Footprint,Previous supplier ID (not revalidated),Notes
+C1,1,100n,Capacitor_SMD:C_0402_1005Metric,C1525,Basic (100nF 16V X7R)
+C10,1,10p,Capacitor_SMD:C_0402_1005Metric,C32949,Basic (10pF 50V) - MUST be C0G/NP0 (crystal load)
+C11,1,10p,Capacitor_SMD:C_0402_1005Metric,C32949,Basic (10pF 50V) - MUST be C0G/NP0 (crystal load)
+C12,1,4.7u,Capacitor_SMD:C_0805_2012Metric,,CHANGED: 4.7uF >=10V X7R 0805; select exact part and verify effective capacitance at 5V. Old 22uF part is not applicable.
+C13,1,22u tantalum,Capacitor_Tantalum_SMD:CP_EIA-3216-18_Kemet-A,,"CHANGED: 22uF 10V solid tantalum, EIA3216-18 case A. Polarity: pad 1 = +3V3. Select exact MPN/ESR for AMS1117; old ceramic part is not applicable."
+C2,1,100n,Capacitor_SMD:C_0402_1005Metric,C1525,Basic (100nF 16V X7R)
+C3,1,100n,Capacitor_SMD:C_0402_1005Metric,C1525,Basic (100nF 16V X7R)
+C4,1,100n,Capacitor_SMD:C_0402_1005Metric,C1525,Basic (100nF 16V X7R)
+C5,1,10u,Capacitor_SMD:C_0603_1608Metric,C19702,Basic (10uF 10V)
+C6,1,100n,Capacitor_SMD:C_0402_1005Metric,C1525,100nF 16V X7R; changed from 10nF for VDDA decoupling
+C7,1,1u,Capacitor_SMD:C_0402_1005Metric,C52923,Basic (1uF 25V)
+C8,1,1u,Capacitor_SMD:C_0402_1005Metric,C52923,Basic (1uF 25V)
+C9,1,100n,Capacitor_SMD:C_0402_1005Metric,C1525,Basic (100nF 16V X7R)
+D1,1,RED,LED_SMD:LED_0603_1608Metric,C2286,Basic
+FB1,1,120R,Inductor_SMD:L_0603_1608Metric,,PICK a 0603 120ohm@100MHz ferrite in JLC (value non-critical - VDDA filter)
+J1,1,Conn_02x10_Odd_Even,Connector_PinHeader_2.54mm:PinHeader_2x10_P2.54mm_Vertical,,"NEW: unshrouded 2x10 male header, 2.54mm pitch, straight THT; same part as J3. New pinout."
+J2,1,USB_C_Receptacle_USB2.0_16P,pcb_hello_world:USB_C_Receptacle_GCT_USB4085_EdgeSilk,C9900013983,MATCHES footprint (GCT USB4085-GF-A through-hole). Hand-solder or THT assembly. Do NOT use C165948 - that is SMD 0.5mm pitch and will not fit
+J3,1,Conn_02x10_Odd_Even,Connector_PinHeader_2.54mm:PinHeader_2x10_P2.54mm_Vertical,,"NEW: unshrouded 2x10 male header, 2.54mm pitch, straight THT; same part as J1. New pinout."
+R1,1,10k,Resistor_SMD:R_0402_1005Metric,C25744,Basic (10k 1%)
+R2,1,1k5,Resistor_SMD:R_0402_1005Metric,C25867,Basic (1.5k 1%)
+R3,1,1k5,Resistor_SMD:R_0402_1005Metric,C25867,Basic (1.5k 1%)
+R4,1,5k1,Resistor_SMD:R_0402_1005Metric,C25905,Basic (5.1k 1%) - USB-C CC resistors MUST be 5.1k
+R5,1,5k1,Resistor_SMD:R_0402_1005Metric,C25905,Basic (5.1k 1%) - USB-C CC resistors MUST be 5.1k
+R6,1,1k5,Resistor_SMD:R_0402_1005Metric,C25867,Basic (1.5k 1%)
+R7,1,1k5,Resistor_SMD:R_0402_1005Metric,C25867,Basic (1.5k 1%)
+R8,1,10k,Resistor_SMD:R_0402_1005Metric,C25744,NEW: 10k 1% 0402; PB2/BOOT1 pull-down
+SW1,1,SW_SPDT,pcb_hello_world:SW_SPDT_PCM12_EdgeSilk,C221841,Exact match (C&K PCM12SMTR)
+U1,1,STM32F103C8T6,Package_QFP:LQFP-48_7x7mm_P0.5mm,C8734,Genuine ST - confirm Extended-part fee in JLC
+U2,1,AMS1117-3.3,Package_TO_SOT_SMD:SOT-223-3_TabPin2,C6186,AMS1117-3.3 SOT-223. Thermal/load validation still required; output capacitor is now solid tantalum.
+Y1,1,16MHz,Crystal:Crystal_SMD_3225-4Pin_3.2x2.5mm,,16MHz 3225 four-pad crystal. Exact manufacturer/load capacitance must be confirmed; retained C10/C11 are 10pF C0G. Do not assume old supplier ID is verified.
