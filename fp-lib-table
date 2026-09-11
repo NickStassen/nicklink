@@ -931,8 +931,8 @@
     (options "") 
     (descr "Varistor")) 
   (lib 
-    (name "pcb_hello_world") 
+    (name "nicklink") 
     (type "KiCad") 
-    (uri "${KIPRJMOD}/pcb_hello_world.pretty") 
+    (uri "${KIPRJMOD}/nicklink.pretty") 
     (options "") 
     (descr "Project connector footprints with edge-compatible silkscreen")))

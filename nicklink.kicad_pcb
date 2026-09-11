@@ -1742,7 +1742,7 @@
 			)
 		)
 	)
-	(footprint "pcb_hello_world:SW_SPDT_PCM12_EdgeSilk"
+	(footprint "nicklink:SW_SPDT_PCM12_EdgeSilk"
 		(layer "F.Cu")
 		(uuid "4ee889ea-b8a8-4dca-addc-5d92c3778ecb")
 		(at 104 62.8 180)
@@ -3796,7 +3796,7 @@
 			)
 		)
 	)
-	(footprint "pcb_hello_world:USB_C_Receptacle_GCT_USB4085_EdgeSilk"
+	(footprint "nicklink:USB_C_Receptacle_GCT_USB4085_EdgeSilk"
 		(layer "F.Cu")
 		(uuid "917efa50-e3c7-4633-9e43-2478c940fe71")
 		(at 97.175 66.625 180)

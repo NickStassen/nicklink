@@ -9,7 +9,7 @@
   },
   "GeneralSpecs": {
     "ProjectId": {
-      "Name": "pcb_hello_world",
+      "Name": "nicklink",
       "GUID": "7063625f-6865-46c6-9c6f-5f776f726c64",
       "Revision": "rev?"
     },
@@ -34,47 +34,47 @@
   ],
   "FilesAttributes": [
     {
-      "Path": "pcb_hello_world-F_Cu.gtl",
+      "Path": "nicklink-F_Cu.gtl",
       "FileFunction": "Copper,L1,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "pcb_hello_world-B_Cu.gbl",
+      "Path": "nicklink-B_Cu.gbl",
       "FileFunction": "Copper,L2,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "pcb_hello_world-F_Paste.gtp",
+      "Path": "nicklink-F_Paste.gtp",
       "FileFunction": "SolderPaste,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "pcb_hello_world-B_Paste.gbp",
+      "Path": "nicklink-B_Paste.gbp",
       "FileFunction": "SolderPaste,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "pcb_hello_world-F_Silkscreen.gto",
+      "Path": "nicklink-F_Silkscreen.gto",
       "FileFunction": "Legend,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "pcb_hello_world-B_Silkscreen.gbo",
+      "Path": "nicklink-B_Silkscreen.gbo",
       "FileFunction": "Legend,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "pcb_hello_world-F_Mask.gts",
+      "Path": "nicklink-F_Mask.gts",
       "FileFunction": "SolderMask,Top",
       "FilePolarity": "Negative"
     },
     {
-      "Path": "pcb_hello_world-B_Mask.gbs",
+      "Path": "nicklink-B_Mask.gbs",
       "FileFunction": "SolderMask,Bot",
       "FilePolarity": "Negative"
     },
     {
-      "Path": "pcb_hello_world-Edge_Cuts.gm1",
+      "Path": "nicklink-Edge_Cuts.gm1",
       "FileFunction": "Profile",
       "FilePolarity": "Positive"
     }

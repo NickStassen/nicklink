@@ -18,7 +18,7 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.1 
 
 The MCU and surrounding components are arranged around their electrical connections. The regulator and capacitors form a close group below the boot switch, the oscillator and analog bypass parts sit below the MCU, and the LED/resistor pair sits together on its right. The lower mounting holes sit inside the header rows.
 
-The board is **48.7% smaller in area than the original 53.5 × 41.7 mm layout**, while keeping the standard header pitch and all four mounting holes.
+The board is **49.7% smaller in area than the original 53.5 × 41.7 mm layout**, while keeping the standard header pitch and all four mounting holes.
 
 ## Open and edit
 
@@ -29,13 +29,13 @@ Open [`nicklink.kicad_pro`](nicklink.kicad_pro) in **KiCad 10**. The schematic, 
 | `nicklink.kicad_sch` | Schematic |
 | `nicklink.kicad_pcb` | Routed board and silkscreen |
 | `nicklink.kicad_pro` | Design rules and project settings |
-| `pcb_hello_world.pretty/` | Project-local USB connector and switch footprints |
+| `nicklink.pretty/` | Project-local USB connector and switch footprints |
 | `docs/images/` | Front and back renders |
 | `docs/` | Review report, pin mapping, schematic, assembly and copper drawings |
 | `fabrication/v1.1/` | Gerbers, drills, BOM and component placement data |
 | `checks/` | Saved KiCad DRC/ERC reports |
 
-The historical footprint-library name is retained to preserve existing library references. Local editor state, backup files, router experiments and downloaded tools are excluded from version control.
+Local editor state, backup files, router experiments and downloaded tools are excluded from version control.
 
 ## Header pinout
 
@@ -106,4 +106,4 @@ For bring-up:
 - [ST AN2586 — hardware design](https://www.st.com/resource/en/application_note/an2586-getting-started-with-stm32f10xxx-hardware-development-stmicroelectronics.pdf)
 - [C&K PCM switch datasheet](https://www.ckswitches.com/media/1424/pcm.pdf)
 
-No license has been specified for this repository.
+Licensed under the [MIT License](LICENSE).
