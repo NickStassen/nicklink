@@ -1,6 +1,6 @@
 # PCB review and compact revision C — 2026-09-10
 
-The working KiCad PCB is revision C. Revision B is preserved in `review/rev_b_snapshot/` and `fab/rev_b/`; the original design is in `review/original/`. The schematic and header pin assignments are unchanged from B.
+The working KiCad PCB in this repository is revision C (NickLink v1.1). Earlier revision snapshots are not published here. The schematic and header pin assignments are unchanged from revision B.
 
 ## Result
 
@@ -48,7 +48,7 @@ These are revised mounting positions. Use the current board/drill data for mecha
 - Removed the mixed SMD/THT header assortment and misleading/colliding header labels. Rear silkscreen now lists all 40 pin numbers and GPIO names; front marks headers, RUN/BOOT and power LED.
 - Short, locked crystal and USB routes were laid out before routing the remaining signals. Crystal routes have no vias. USB D+ has no vias; D− uses two for the short connector-side crossover. Total copper per net including contact ties/branches is 13.1 mm (D+) and 13.0 mm (D−); these are not endpoint-to-endpoint length-matching measurements. Crystal net totals are 3.9 mm and 12.0 mm.
 - Power routing uses a 0.30 mm preferred width, with short 0.25 mm MCU decoupling connections. General signals use 0.15 mm and USB/crystal use 0.20 mm. Clearance remains 0.13 mm. Vias are 0.60/0.30 mm diameter/drill. The project minimum via diameter was changed accordingly, retaining 0.13 mm minimum annular ring. Silkscreen clearance was increased from 0 to 0.10 mm and the final board still passes.
-- Bottom copper is correctly classified as a signal layer. Project-local library tables fix missing-library warnings. Existing trimmed USB/switch silkscreen geometry is stored explicitly in `pcb_hello_world.pretty`; copper/pad geometry was preserved.
+- Bottom copper is correctly classified as a signal layer. Project-local library tables fix missing-library warnings. Existing trimmed USB/switch silkscreen geometry is stored explicitly in `nicklink.pretty`; copper/pad geometry was preserved.
 
 ## Verification
 
@@ -57,7 +57,7 @@ KiCad **10.0.4**, on the final saved board:
 - ERC: **0 errors, 0 warnings** (`final-erc.rpt`).
 - DRC, including all track errors, zone refill and schematic parity: **0 violations, 0 unconnected items, 0 parity issues** (`final-drc.json`).
 - No DRC exclusions were added. Existing ERC ignored-check settings were retained and appear in the ERC report.
-- Exported netlist compared pin-by-pin with the intended transformation: every retained circuit pin and every new header pin matched (`tools/check_netlist.py`).
+- Exported netlist compared pin-by-pin with the intended transformation: every retained circuit pin and every new header pin matched.
 - Front/back renders and copper plots visually inspected. The schematic is unchanged from revision B. The assembly drawing carries component references omitted from crowded front silkscreen.
 
 These checks establish connectivity and geometric clearance. They do not establish signal integrity, ESD immunity, regulator stability under every load, USB compliance, or successful operation of an assembled prototype.
@@ -104,12 +104,13 @@ For SWD connect J3.11=SWCLK, J3.12=SWDIO, J3.1=target voltage reference, and J3.
 
 ## Deliverables
 
-- Root `.kicad_pcb`, `.kicad_sch`, `.kicad_pro`: current revision.
-- `top.png`, `bottom.png`: current visual previews.
-- `schematic.pdf`, `assembly.pdf`, `copper.pdf`: review drawings.
-- `../fab/rev_c/`: refreshed Gerbers, separate plated/non-plated drill files, BOM and SMD placement CSV. Placement rotations and component sourcing require assembler review.
-- `original/`: original design and old fabrication package.
-- `tools/`: scripts used during the revision, kept as an audit trail; intermediate scripts are not a one-command rebuild pipeline. Running the placement scripts again intentionally discards routing.
+- Root `nicklink.kicad_pcb`, `nicklink.kicad_sch`, `nicklink.kicad_pro`: current revision C.
+- `docs/images/top.png`, `docs/images/bottom.png`: current visual previews.
+- `docs/schematic.pdf`, `docs/assembly.pdf`, `docs/copper.pdf`: review drawings.
+- `docs/pinout.csv`, `docs/REVIEW.md`: pin mapping and this report.
+- `fabrication/v1.1/`: Gerbers, separate plated/non-plated drill files, BOM and SMD placement CSV (`nicklink_BOM.csv`, `nicklink_CPL.csv`). Placement rotations and component sourcing require assembler review.
+- `checks/`: saved KiCad DRC/ERC reports for the final board.
+- `nicklink.pretty/`: project-local USB connector and boot-switch footprints.
 
 ## Reference documents
 

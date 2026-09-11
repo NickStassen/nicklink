@@ -30,7 +30,7 @@
     ],
     "kicad_version": "10.0.4",
     "schematic_parity": [],
-    "source": "pcb_hello_world.kicad_pcb",
+    "source": "nicklink.kicad_pcb",
     "unconnected_items": [],
     "violations": []
 }
