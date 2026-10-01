@@ -27,7 +27,7 @@ G = 2.54   # grid
 STUB = 2.54  # wire stub length
 FONT = 1.27
 
-TITLE = {"title": "NickLink", "date": "2026-10-01", "rev": "1.2"}
+TITLE = {"title": "NickLink", "date": "2026-10-01", "rev": spec.REV}
 
 # Library pins renumbered to match the footprint (footprint calls the USB-C
 # shield pads "SH"; stock symbol calls them "S1").
@@ -57,6 +57,10 @@ LAYOUT = {
     ],
     "User LED": [("D3", 292.1, 99.06, 180), ("R6", 332.74, 99.06, 270)],
     "Headers J1 / J3": [("J3", 299.72, 139.7), ("J1", 365.76, 139.7)],
+    "IMU (I2C1 0x6A, INT1 -> PA0)": [
+        ("U4", 309.88, 190.5), ("R7", 342.9, 187.96), ("R9", 355.6, 187.96),
+        ("C14", 368.3, 187.96), ("C15", 381.0, 187.96),
+    ],
 }
 FLAG_AREA = (284.48, 71.12)  # PWR_FLAG row (inside the Power block)
 NOTE_AT = (20.32, 205.74)
@@ -140,7 +144,8 @@ _libtext = {}
 
 def lib_raw(lib, name):
     if lib not in _libtext:
-        with open(os.path.join(SYMDIR, lib + ".kicad_sym"), encoding="utf-8") as f:
+        path = os.path.join(os.path.dirname(__file__), "..", "nicklink.kicad_sym") if lib == "nicklink" else os.path.join(SYMDIR, lib + ".kicad_sym")
+        with open(path, encoding="utf-8") as f:
             _libtext[lib] = f.read()
     m = re.search(r'^\t\(symbol "%s"\s*$' % re.escape(name), _libtext[lib], re.M)
     if not m:

@@ -1,6 +1,7 @@
 """Build nicklink.kicad_pcb from spec.py + placement.py (runs inside the kicad docker image).
 
 usage: python3 tools/build_pcb.py <template.kicad_pcb> <out.kicad_pcb> [netlist.net]
+       python3 tools/build_pcb.py --resilk <routed.kicad_pcb>   # redraw silkscreen only
 
 The template only supplies board setup (stackup, plot settings); all footprints,
 tracks, zones and drawings are replaced. If a KiCad netlist is given, footprints
@@ -148,6 +149,25 @@ def main(template, out, netfile=None):
             o.Append(mm(x + P.OX), mm(y + P.OY))
         board.Add(z)
 
+    for name, w, pts in P.PREROUTE:
+        for a, b in zip(pts, pts[1:]):
+            t = pcbnew.PCB_TRACK(board)
+            t.SetStart(V(*a)); t.SetEnd(V(*b)); t.SetWidth(mm(w))
+            t.SetLayer(pcbnew.F_Cu); t.SetNet(nets[name]); t.SetLocked(True)
+            board.Add(t)
+
+    # Keep-outs (no tracks, vias or pour), e.g. top copper under the IMU per ST TN0018
+    for layer, (x0, y0, x1, y1) in P.KEEPOUTS:
+        k = pcbnew.ZONE(board)
+        k.SetIsRuleArea(True)
+        k.SetLayer(layer)
+        k.SetDoNotAllowTracks(True); k.SetDoNotAllowVias(True); k.SetDoNotAllowZoneFills(True)
+        k.SetDoNotAllowPads(False); k.SetDoNotAllowFootprints(False)
+        o = k.Outline(); o.NewOutline()
+        for x, y in ((x0, y0), (x1, y0), (x1, y1), (x0, y1)):
+            o.Append(mm(x + P.OX), mm(y + P.OY))
+        board.Add(k)
+
     silk(board)
     board.Save(out)
     dump(board, out.replace(".kicad_pcb", ".geom.json"))
@@ -202,7 +222,12 @@ def silk(board):
             text(board, short(net), px + side * off, y0 + 2.54 * row, pcbnew.F_SilkS, h=0.8, w=0.7, angle=90)
 
     for s, x, y, a, j in P.LABELS:
-        text(board, s, x, y, pcbnew.F_SilkS, h=0.8, w=0.7, angle=a, just=j)
+        text(board, s, x, y, pcbnew.F_SilkS, h=0.8, w=0.62 if a == 0 else 0.7, angle=a, just=j)
+    for x, y, r in P.SILK_DOTS:
+        d = pcbnew.PCB_SHAPE(board, pcbnew.SHAPE_T_CIRCLE)
+        d.SetCenter(V(x, y)); d.SetEnd(V(x + r / 2, y))
+        d.SetWidth(mm(r)); d.SetFilled(True); d.SetLayer(pcbnew.F_SilkS)
+        board.Add(d)
 
     # Back: function cheat sheet + name.
     lines = [
@@ -210,10 +235,10 @@ def silk(board):
         "A9 TX1   A10 RX1", "A13 SWDIO A14 SWCLK", "B3 SWO   RST NRST",
         "B6 SCL1  B7 SDA1", "A5 SCK1  A6 MISO1", "A7 MOSI1 B2 BOOT1", "B8 CANRX B9 CANTX",
         "C13 LED (low=on)", "5V: USB out/<=5.5V in", "3V3 out: 250 mA max",
-    ]
+    ] + [f"IMU {spec.PARTS['U4'][1]} 0x6A", "I2C1 B6/B7, INT1 A0"] * ("U4" in spec.PARTS)
     for i, s in enumerate(lines):
         text(board, s, P.c, 8.3 + 1.25 * i, pcbnew.B_SilkS, h=0.8, w=0.7)
-    text(board, "NickLink v1.2", P.c, P.H - 2.0, pcbnew.B_SilkS, h=1.0, w=0.8)
+    text(board, f"NickLink v{spec.REV}", P.c, P.H - 2.0, pcbnew.B_SilkS, h=1.0, w=0.8)
 
 
 def dump(board, path):
@@ -236,5 +261,19 @@ def dump(board, path):
     json.dump(g, open(path, "w"), indent=0)
 
 
+def resilk(path):
+    """Redraw all board-level silkscreen on an already-routed board (copper untouched)."""
+    board = pcbnew.LoadBoard(path)
+    for d in list(board.GetDrawings()):
+        if d.GetLayer() in (pcbnew.F_SilkS, pcbnew.B_SilkS):
+            board.Delete(d)
+    silk(board)
+    pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+    pcbnew.SaveBoard(path, board)
+
+
 if __name__ == "__main__":
-    main(*sys.argv[1:])
+    if sys.argv[1] == "--resilk":
+        resilk(sys.argv[2])
+    else:
+        main(*sys.argv[1:])

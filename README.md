@@ -1,16 +1,20 @@
-# NickLink v1.2
+# NickLink v1.3
 
-NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.2 is a **33.2 × 25.5 mm, two-layer PCB**, the same height as its two **2×10, 2.54 mm headers**, with **four M2 mounting holes**, USB-C, RESET and BOOT buttons, a user LED, and **every header pin labelled on the front silkscreen**.
+NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 is a **33.2 × 28.8 mm, two-layer PCB** with an on-board **6-axis IMU (ST LSM6DSV16X)** for motion tracking, robotics and tap-to-wake projects. It also has two **2×10, 2.54 mm headers**, **four M2 mounting holes**, USB-C, RESET and BOOT buttons, a user LED, and **every header pin labelled on the front silkscreen**.
 
-![NickLink v1.2 — component side](docs/images/top.png)
+![NickLink v1.3 — component side](docs/images/top.png)
 
-![v1.1 and v1.2 at the same scale](docs/images/compare.png)
+![v1.1, v1.2 and v1.3 at the same scale](docs/images/compare.png)
 
-## What changed from v1.1
+## What changed
 
-| | v1.1 | v1.2 |
+**v1.3** adds the IMU on I2C1. The board grows 3.3 mm in height to fit it on the top side (single-sided assembly). PB6/PB7 get 4.7 kΩ pull-ups again, because the bus now has an on-board device. The IMU's INT1 drives PA0. The 3V3 budget drops by about 1 mA for the IMU. Everything else is as in v1.2.
+
+**v1.2** changes from v1.1:
+
+| | v1.1 | v1.2 → v1.3 |
 |---|---|---|
-| Outline | 34 × 33 mm (1122 mm²) | **33.19 × 25.5 mm (846 mm², −25%)** |
+| Outline | 34 × 33 mm (1122 mm²) | **v1.2: 33.19 × 25.5 mm (846 mm², −25%)**; v1.3: 33.19 × 28.8 mm (956 mm², −15%) |
 | Pin labels | Numbered table on the back | **Name beside every pin on the front**; function cheat sheet on the back |
 | 5 V on the headers | None | **J1.1 = 5 V** (USB VBUS through a Schottky; also a 5 V input) |
 | Reset | Header pin only | **RESET button** + NRST on J3 next to SWD |
@@ -19,8 +23,9 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.2 
 | HSE crystal | 16 MHz | **8 MHz** (matches Blue Pill / STM32duino / CubeMX defaults) |
 | Regulator | AMS1117-3.3 (SOT-223) + 22 µF tantalum | **TLV75533** (2×2 mm WSON) + ceramics |
 | USB ESD | None | **USBLC6-2P6** on D+/D− and VBUS |
-| I2C pull-ups | 1.5 kΩ fitted on PB6/PB7 | Removed (most modules have their own); PB6/PB7 are free GPIO |
+| I2C pull-ups | 1.5 kΩ fitted on PB6/PB7 | v1.2: removed; **v1.3: 4.7 kΩ** (needed by the on-board IMU) |
 | LEDs | Power | Power + **user LED on PC13** (low = on) |
+| IMU | — | **v1.3: LSM6DSV16X** 6-axis accel + gyro with on-chip sensor fusion |
 
 ## Hardware
 
@@ -29,6 +34,7 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.2 
 - Power path: USB VBUS → 1N5819WS Schottky → **5V rail** (J1.1) → TLV75533 LDO → **3V3** (J3.1, J1.20). The Schottky stops a supply on the 5V pin from back-feeding the USB host.
 - RESET button (NRST to GND, 100 nF), BOOT button (BOOT0 to 3V3, 10 kΩ pull-down), 10 kΩ pull-down on PB2/BOOT1.
 - Red power LED, green user LED on PC13 (active low).
+- **IMU:** ST LSM6DSV16X 6-axis accelerometer and gyroscope on I2C1 (PB6 SCL / PB7 SDA, address **0x6A**), INT1 to PA0.
 - 33 GPIO + NRST on the headers. Only PA11/PA12 (USB) and PD0/PD1 (crystal) are not broken out.
 - GND pours on both layers, stitched with vias.
 
@@ -50,20 +56,36 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.2 
 | 10 | `RST` NRST (reset, active low) | `B1` PB1 (3.3 V only) |
 | 11 | `B4` PB4 | `B0` PB0 (3.3 V only) |
 | 12 | `B5` PB5 (3.3 V only) | `A7` PA7 / SPI1 MOSI (3.3 V only) |
-| 13 | `B6` PB6 / I2C1 SCL | `A6` PA6 / SPI1 MISO (3.3 V only) |
-| 14 | `B7` PB7 / I2C1 SDA | `A5` PA5 / SPI1 SCK (3.3 V only) |
+| 13 | `B6` PB6 / I2C1 SCL (4.7k pull-up, IMU) | `A6` PA6 / SPI1 MISO (3.3 V only) |
+| 14 | `B7` PB7 / I2C1 SDA (4.7k pull-up, IMU) | `A5` PA5 / SPI1 SCK (3.3 V only) |
 | 15 | `B8` PB8 / CAN RX (remap) | `A4` PA4 (3.3 V only) |
 | 16 | `B9` PB9 / CAN TX (remap) | `A3` PA3 / UART2 RX (3.3 V only) |
 | 17 | `C13` PC13 / user LED (3.3 V only) | `A2` PA2 / UART2 TX (3.3 V only) |
 | 18 | `C14` PC14 (3.3 V only) | `A1` PA1 (3.3 V only) |
-| 19 | `C15` PC15 (3.3 V only) | `A0` PA0 / WKUP (3.3 V only) |
+| 19 | `C15` PC15 (3.3 V only) | `A0` PA0 / WKUP / IMU INT1 (3.3 V only) |
 | 20 | `GND` | `3V3` 3V3 regulated output |
 
 Pins not marked "3.3 V only" are 5 V tolerant (FT) while the board is powered. PA0–PA7, PB0 and PB1 are also ADC inputs. [`docs/pinout.csv`](docs/pinout.csv) has the same table in machine-readable form.
 
 - **SWD:** J3.1 3V3 (target voltage sense), J3.2 GND, J3.7 SWDIO, J3.8 SWCLK, J3.10 NRST, optional J3.9 SWO.
 - **Serial bootloader:** hold BOOT, tap RESET, release BOOT, then use USART1 on J3.3 (TX) / J3.4 (RX). This is ST's factory USART bootloader; the F103 has no factory USB DFU bootloader.
+- **I2C1 / IMU:** I2C1 has on-board 4.7 kΩ pull-ups. External I2C modules can share the bus as long as they avoid address 0x6A; if they bring their own pull-ups, keep the combined value above about 1.5 kΩ.
+- **A0 is driven by the IMU's INT1** (push-pull, active high by default). Don't drive A0 from outside unless you first set INT1 to open-drain (`PP_OD`, register IF_CFG 03h bit 3).
 - **User LED:** PC13 low turns it on. PC13–PC15 are low-drive pins (sink ≤3 mA, ≤2 MHz) and must not source current.
+
+## IMU
+
+The LSM6DSV16X is a 6-axis IMU: accelerometer up to ±16 g, gyroscope up to ±4000 dps.
+- **Address:** I2C1 at 0x6A (SA0 tied low); CS is tied high for I2C mode.
+- **Interrupt:** INT1 goes to PA0. PA0 is also the STM32's WKUP pin, so a tap or motion interrupt (rising edge) can wake the MCU from Standby.
+
+Features useful here:
+- **On-chip sensor fusion (SFLP):** outputs a game rotation vector (quaternion) at 15–480 Hz through the FIFO. The F103 has no hardware floating point, so this saves it doing the orientation math.
+- **Hardware event detection:** tap, double-tap, wake-up, free-fall and 6D-orientation events, routable to INT1 (MD1_CFG 5Eh, with INTERRUPTS_ENABLE set in FUNCTIONS_ENABLE 50h). This covers tap-activated projects without polling.
+
+Firmware starting points: ST's `lsm6dsv16x-pid` platform-independent driver and the STM32duino `STM32duino-LSM6DSV16X` library. Bring-up check: WHO_AM_I (0Fh) should read **0x70**.
+
+Placement follows ST's LGA guidance: the IMU sits on the top side, with no copper or vias under the package on that layer. It is at the bottom centre of the board, away from the regulator's heat and the USB cable strain. The datasheet's ~10 mm distance from screws can't be met on a board this small. Mount on standoffs without over-tightening, since board flex shows up as accelerometer offset.
 
 ## Power
 
@@ -78,8 +100,8 @@ Four 2.2 mm holes for M2 screws. The keep-out is sized for **button-head (ISO 73
 |---|---:|---:|
 | H1 | 9.53 | 2.05 |
 | H2 | 23.66 | 2.05 |
-| H3 | 9.53 | 23.45 |
-| H4 | 23.66 | 23.45 |
+| H3 | 9.53 | 26.75 |
+| H4 | 23.66 | 26.75 |
 
 The USB-C receptacle overhangs the top edge by about 2 mm, as in v1.1.
 
@@ -87,7 +109,7 @@ The USB-C receptacle overhangs the top edge by about 2 mm, as in v1.1.
 
 Open [`nicklink.kicad_pro`](nicklink.kicad_pro) in **KiCad 10**. The schematic, PCB, rules and project-local footprints (`nicklink.pretty/`) are included.
 
-v1.2 is generated by scripts in [`tools/`](tools/README.md). [`tools/spec.py`](tools/spec.py) is the single source of truth for parts, nets and header pinout, and [`tools/placement.py`](tools/placement.py) holds component positions. `tools/build_all.sh` regenerates the schematic, places parts, autoroutes with Freerouting, stitches the GND pours and runs DRC. It writes `nicklink.kicad_pcb` only if everything is clean. Everything runs in Docker (`kicad/kicad:10.0`); no local KiCad install is needed.
+NickLink is generated by scripts in [`tools/`](tools/README.md). [`tools/spec.py`](tools/spec.py) is the single source of truth for parts, nets and header pinout, and [`tools/placement.py`](tools/placement.py) holds component positions. `tools/build_all.sh` regenerates the schematic, places parts, autoroutes with Freerouting, stitches the GND pours and runs DRC. It writes `nicklink.kicad_pcb` only if everything is clean. Everything runs in Docker (`kicad/kicad:10.0`); no local KiCad install is needed.
 
 | Location | Contents |
 |---|---|
@@ -95,9 +117,9 @@ v1.2 is generated by scripts in [`tools/`](tools/README.md). [`tools/spec.py`](t
 | `nicklink.pretty/` | Project footprints: USB4085, plus header and button copies without silkscreen (the board draws its own labels) |
 | `tools/` | Build pipeline, see [tools/README.md](tools/README.md) |
 | `docs/` | [Design review](docs/REVIEW.md), pinout CSV, schematic, assembly and copper PDFs, renders |
-| `fabrication/v1.2/` | Gerbers, drills, JLC BOM and CPL |
-| `fabrication/v1.1/` | Previous revision's outputs, kept for reference |
-| `checks/` | Saved DRC/ERC reports for v1.2 |
+| `fabrication/v1.3/` | Gerbers, drills, JLC BOM and CPL |
+| `fabrication/v1.1/`, `v1.2/` | Previous revisions' outputs, kept for reference |
+| `checks/` | Saved DRC/ERC reports for v1.3 |
 
 ## Validation and fabrication
 
@@ -111,7 +133,8 @@ Bring-up:
 2. Connect SWD and confirm the RESET button resets the chip.
 3. Configure firmware for the **8 MHz HSE**: PLL ×9 = 72 MHz, USB prescaler /1.5. Verify that the oscillator starts. If the HSE runs fast, try 18 pF load capacitors.
 4. Check USB enumeration in both cable orientations, then BOOT + RESET into the USART1 bootloader.
-5. Test the peripherals you need.
+5. Scan I2C1 (expect 0x6A) and read IMU WHO_AM_I = 0x70. Tap the board and check that A0 pulses once tap detection is enabled.
+6. Test the peripherals you need.
 
 **Interface limits:**
 
@@ -125,6 +148,7 @@ Bring-up:
 - [ST AN2586 — hardware design](https://www.st.com/resource/en/application_note/an2586-getting-started-with-stm32f10xxx-hardware-development-stmicroelectronics.pdf)
 - [ST AN2867 — oscillator design](https://www.st.com/resource/en/application_note/an2867-guidelines-for-oscillator-design-on-stm8afals-and-stm32-mcusmpus-stmicroelectronics.pdf)
 - [TI TLV755P datasheet](https://www.ti.com/lit/ds/symlink/tlv755p.pdf)
+- [ST LSM6DSV16X datasheet](https://www.st.com/resource/en/datasheet/lsm6dsv16x.pdf)
 - [ST USBLC6-2 datasheet](https://www.st.com/resource/en/datasheet/usblc6-2.pdf)
 
 Licensed under the [MIT License](LICENSE).

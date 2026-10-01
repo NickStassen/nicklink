@@ -1,8 +1,10 @@
-"""NickLink v1.2 design spec: the single source of truth for parts and nets.
+"""NickLink design spec: the single source of truth for parts and nets.
 
 gen_sch.py builds the schematic from this; the PCB is built from the netlist
 KiCad exports from that schematic.
 """
+
+REV = "1.3"
 
 # ref: (lib_symbol, value, footprint, {pin: net}, extra fields)
 # Pins not listed are no-connect.
@@ -56,7 +58,8 @@ PARTS = {
     "R2": ("Device:R", "1k5", "Resistor_SMD:R_0402_1005Metric", {"1": "+3.3V", "2": "USB_D+"}, {"Note": "USB FS D+ pull-up"}),
     # USBLC6-2P6: 1/6 = I/O1, 3/4 = I/O2 (each pair internally connected), 2 = GND, 5 = VBUS
     "U3": ("Power_Protection:USBLC6-2P6", "USBLC6-2P6", "Package_TO_SOT_SMD:SOT-666", {
-        "1": "USB_D+", "6": "USB_D+", "3": "USB_D-", "4": "USB_D-", "2": "GND", "5": "VBUS",
+        # channels are identical; D+ on I/O2 so neither line crosses the other at the MCU (D+ is left of D-)
+        "1": "USB_D-", "6": "USB_D-", "3": "USB_D+", "4": "USB_D+", "2": "GND", "5": "VBUS",
     }, {}),
     "C13": ("Device:C", "100n", "Capacitor_SMD:C_0402_1005Metric", {"1": "VBUS", "2": "GND"}, {"Note": "USBLC6 VBUS decoupling"}),
 
@@ -74,6 +77,22 @@ PARTS = {
     "R3": ("Device:R", "1k5", "Resistor_SMD:R_0402_1005Metric", {"1": "GND", "2": "PWR_LED_K"}, {}),
     "D3": ("Device:LED", "GREEN", "LED_SMD:LED_0402_1005Metric", {"1": "USER_LED_K", "2": "+3.3V"}, {"Note": "User LED, PC13 low = on", "MPN": "Everlight 16-213/GHC-YR1S1/3T"}),
     "R6": ("Device:R", "1k5", "Resistor_SMD:R_0402_1005Metric", {"1": "PC13", "2": "USER_LED_K"}, {}),
+
+    # --- IMU: LSM6DSV16X on I2C1 (address 0x6A), INT1 -> PA0 (WKUP) -------------
+    # Project symbol (nicklink.kicad_sym): KiCad has none; same LGA-14 pinout as LSM6DSM.
+    "U4": ("nicklink:LSM6DSV16X", "LSM6DSV16X", "nicklink:LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y_NoSilk", {
+        "1": "GND",          # SDO/SA0 low -> I2C address 0x6A
+        "2": "GND", "3": "GND",  # SDx/SCx aux bus unused
+        "4": "PA0",          # INT1
+        "5": "+3.3V", "8": "+3.3V",  # VDDIO, VDD
+        "6": "GND", "7": "GND",
+        "12": "+3.3V",       # CS high -> I2C mode
+        "13": "PB6", "14": "PB7",
+    }, {"MPN": "ST LSM6DSV16XTR"}),
+    "C14": ("Device:C", "100n", "Capacitor_SMD:C_0402_1005Metric", {"1": "+3.3V", "2": "GND"}, {"Note": "IMU VDD"}),
+    "C15": ("Device:C", "100n", "Capacitor_SMD:C_0402_1005Metric", {"1": "+3.3V", "2": "GND"}, {"Note": "IMU VDDIO"}),
+    "R7": ("Device:R", "4k7", "Resistor_SMD:R_0402_1005Metric", {"1": "+3.3V", "2": "PB6"}, {"Note": "I2C1 SCL pull-up"}),
+    "R9": ("Device:R", "4k7", "Resistor_SMD:R_0402_1005Metric", {"1": "+3.3V", "2": "PB7"}, {"Note": "I2C1 SDA pull-up"}),
 
     # --- Headers ------------------------------------------------------------
     # Top view, USB up: J3 left, J1 right. Pin 1 upper-left; odd pins = left column.
@@ -100,10 +119,10 @@ LCSC = {
     "U1": "C8734", "U2": "C2861750", "U3": "C15999", "D2": "C191023", "J2": "C7095263",
     "Y1": "C2682775", "C10": "C1548", "C11": "C1548", "SW1": "C231329", "SW2": "C231329",
     "FB1": "C85812", "C5": "C19702",
-    "D1": "C264407", "D3": "C74338",
+    "U4": "C5267406", "D1": "C264407", "D3": "C74338",
 }
 for _ref, (_sym, _val, _fp, _pins, _extra) in PARTS.items():
-    _lcsc = LCSC.get(_ref) or {"100n": "C1525", "1u": "C52923", "10k": "C25744", "5k1": "C25905", "1k5": "C25867"}.get(_val, "")
+    _lcsc = LCSC.get(_ref) or {"100n": "C1525", "1u": "C52923", "10k": "C25744", "5k1": "C25905", "1k5": "C25867", "4k7": "C25900"}.get(_val, "")
     if _lcsc:
         _extra.setdefault("LCSC", _lcsc)
 
@@ -118,9 +137,9 @@ BOARD_ONLY = {
 # Friendly function names for docs/silkscreen
 ALIASES = {
     "PA13": "SWDIO", "PA14": "SWCLK", "PB3": "SWO", "PA9": "UART1 TX", "PA10": "UART1 RX",
-    "PB6": "I2C1 SCL", "PB7": "I2C1 SDA", "PB8": "CAN RX (remap)", "PB9": "CAN TX (remap)",
+    "PB6": "I2C1 SCL (4.7k pull-up, IMU)", "PB7": "I2C1 SDA (4.7k pull-up, IMU)", "PB8": "CAN RX (remap)", "PB9": "CAN TX (remap)",
     "PA5": "SPI1 SCK", "PA6": "SPI1 MISO", "PA7": "SPI1 MOSI", "PB2": "BOOT1, 10k pull-down",
-    "PC13": "user LED (active low)", "PA2": "UART2 TX", "PA3": "UART2 RX", "PA0": "WKUP",
+    "PC13": "user LED (active low)", "PA2": "UART2 TX", "PA3": "UART2 RX", "PA0": "WKUP / IMU INT1",
     "PB10": "I2C2 SCL / UART3 TX", "PB11": "I2C2 SDA / UART3 RX",
     "PB13": "SPI2 SCK", "PB14": "SPI2 MISO", "PB15": "SPI2 MOSI",
 }

@@ -1,3 +1,45 @@
+# NickLink v1.3 design review — 2026-10-01
+
+v1.3 adds an on-board 6-axis IMU for motion tracking, robotics and tap-activated projects. Everything else matches v1.2 (section below), apart from the items listed here. **Pinout is unchanged from v1.2.**
+
+| | v1.2 | v1.3 |
+|---|---:|---:|
+| Outline | 33.19 × 25.5 mm (846 mm²) | **33.19 × 28.8 mm (956 mm²)** |
+| vs v1.1 (1122 mm²) | −25% | **−15%** |
+| Parts | 33 | 38 |
+
+**IMU circuit** (ST LSM6DSV16X, LGA-14 2.5 × 3 mm, LCSC C5267406):
+
+| Pin | Connection | Why |
+|---|---|---|
+| SCL / SDA | PB6 / PB7 (I2C1) | 4.7 kΩ pull-ups R7/R9 back on the bus |
+| SDO/SA0 | GND | I2C address 0x6A |
+| CS | 3V3 | I2C mode |
+| INT1 | PA0 | WKUP pin: tap or motion can wake the MCU from Standby |
+| VDD, VDDIO | 3V3, each with its own 100 nF | datasheet recommendation |
+| SDx, SCx | GND | datasheet: "connect to Vdd_IO or GND" (must not float) |
+| INT2, OCS_Aux, SDO_Aux | not connected | INT2 drives low by default; the aux pins have internal pull-ups |
+
+The connections were checked against datasheet DS13510 (see `tools/imu_research.md`). The schematic uses a project symbol (`nicklink.kicad_sym`) with the LSM6DSM pinout, which is identical, and pin types set for I2C use.
+
+**Placement and routing**
+- The IMU sits on the top side, at the bottom centre between the bottom mounting holes, below the crystal. That is away from the LDO's heat (gyro bias drift) and from USB cable strain.
+- It is rotated so SCL/SDA/CS face the I2C side and VDDIO/GND face their caps. Only the pins strapped to GND and INT1 face the board edge.
+- A top-copper keep-out covers the area inside the IMU's pad ring, per ST's LGA guidance: no tracks, vias or pour under the package.
+- **Deviation:** ST suggests about 10 mm from screws. Here it is about 5 mm, because the board is 28.8 mm tall. Mount without over-tightening.
+- **Crystal nets are now pre-routed** as locked top-layer tracks (HSE_IN 8.1 mm, HSE_OUT 5.1 mm, no vias), so autoroute variation can't push them onto vias.
+- **ESD channels swapped:** USB D+ uses the USBLC6's I/O2 channel and D− uses I/O1. The two channels are identical, and this order means D+ and D− no longer cross at the MCU. USB D+/D− are about 11 / 10 mm.
+- **Minimum track width lowered from 0.13 mm to 0.10 mm.** This covers Freerouting's 0.112 mm neck-downs at fine-pitch pads, which are within JLC's standard 2-layer capability. The default 0.15 mm signal width is unchanged.
+- A few small passives near the USB connector carry ±0.1 mm offsets, found by a seeded search (`NICKLINK_SEED`). Freerouting's result is very sensitive to placement, and these offsets give 100% routing with short crystal and USB nets.
+
+**Verification** (KiCad 10.0.6): ERC 0 errors / 0 warnings; DRC 0 violations, 0 unconnected, 0 schematic-parity issues (`checks/`).
+
+**Bring-up additions:** scan I2C1 (expect 0x6A); read WHO_AM_I (0Fh) and expect 0x70; enable tap detection on INT1 and check that A0 pulses; confirm that A0 is not driven from outside while INT1 is push-pull.
+
+**Cost:** the LSM6DSV16X is a JLC Extended part, about $3.44 each or $2.47 each at 100, plus a loading fee. The other new parts are Basic: 4.7 kΩ (C25900), 100 nF (C1525).
+
+---
+
 # NickLink v1.2 design review — 2026-10-01
 
 v1.2 has two goals: a smaller board, and the quality-of-life fixes found when reviewing v1.1 (no 5 V pin, undocumented fixed I2C pull-ups, no reset button, SWD split across headers, a non-standard 16 MHz crystal, no user LED, no USB ESD protection). The pinout changes along the way, so v1.2 is **not** pin-compatible with v1.1.

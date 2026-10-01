@@ -222,4 +222,5 @@
 	(lib (name "Triac_Thyristor") (type "KiCad") (uri "${KICAD10_SYMBOL_DIR}/Triac_Thyristor.kicad_symdir") (options "") (descr "TRIAC and thyristor symbols"))
 	(lib (name "Valve") (type "KiCad") (uri "${KICAD10_SYMBOL_DIR}/Valve.kicad_symdir") (options "") (descr "Valve symbols"))
 	(lib (name "Video") (type "KiCad") (uri "${KICAD10_SYMBOL_DIR}/Video.kicad_symdir") (options "") (descr "Video symbols"))
+	(lib (name "nicklink") (type "KiCad") (uri "${KIPRJMOD}/nicklink.kicad_sym") (options "") (descr "NickLink project symbols"))
 )

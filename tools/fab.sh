@@ -5,10 +5,10 @@
 #   docs/assembly.pdf, docs/copper.pdf, docs/images/top.png, bottom.png
 #   checks/final-drc.json, checks/final-erc.rpt
 # Fails if DRC or ERC is not clean, or any output check fails.
-# Usage: [REV=v1.2] tools/fab.sh
+# Usage: [REV=v<spec.REV>] tools/fab.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
-REV=${REV:-v1.2}
+REV=${REV:-v$(python3 -c "import sys; sys.path.insert(0, 'tools'); import spec; print(spec.REV)")}
 OUT=fabrication/$REV
 G=$OUT/gerbers
 K=tools/kdock
@@ -79,7 +79,8 @@ with open(f"{out}/nicklink_CPL.csv", "w", newline="") as f:
     for ref in sorted(smd, key=lambda s: (re.sub(r"\d", "", s), int(re.sub(r"\D", "", s)))):
         r = smd[ref]
         w.writerow([ref, f"{float(r['PosX']) - x0:.4f}mm", f"{float(r['PosY']) - y0:.4f}mm", "Top", f"{float(r['Rot']) % 360:g}"])
-assert abs(w_mm - 33.19) < 0.01 and abs(h_mm - 25.5) < 0.01, f"Edge.Cuts {w_mm:.2f} x {h_mm:.2f} mm, expected 33.19 x 25.50"
+sys.path.insert(0, "tools"); import placement as P
+assert abs(w_mm - P.W) < 0.01 and abs(h_mm - P.H) < 0.01, f"Edge.Cuts {w_mm:.2f} x {h_mm:.2f} mm, expected {P.W} x {P.H}"
 print(f"BOM: {len(rows)} lines, {sum(len(r[1].split(',')) for r in rows)} parts; CPL: {len(smd)} SMD parts; board {w_mm:.2f} x {h_mm:.2f} mm")
 EOF
 
