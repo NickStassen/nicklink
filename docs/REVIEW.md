@@ -1,122 +1,75 @@
-# PCB review and compact revision C — 2026-09-10
+# NickLink v1.2 design review — 2026-10-01
 
-The working KiCad PCB in this repository is revision C (NickLink v1.1). Earlier revision snapshots are not published here. The schematic and header pin assignments are unchanged from revision B.
+v1.2 has two goals: a smaller board, and the quality-of-life fixes found when reviewing v1.1 (no 5 V pin, undocumented fixed I2C pull-ups, no reset button, SWD split across headers, a non-standard 16 MHz crystal, no user LED, no USB ESD protection). The pinout changes along the way, so v1.2 is **not** pin-compatible with v1.1.
 
 ## Result
 
-| Item | Original | Revision B | Revision C |
-|---|---:|---:|---:|
-| Outline, Edge.Cuts centerlines | 53.5 × 41.7 mm | 38 × 39 mm | **34 × 33 mm** |
-| Bounding rectangle area | 2230.95 mm² | 1482 mm² | **1122 mm²** |
-| Header components, excluding USB | 8 | 2 | 2 |
-| Different header footprints | 5 | 1 | 1 |
-| M2 mounting holes | 4 | 4 | **4** |
-| Routed track length, excluding vias | 1615.7 mm | 1142.4 mm | 1071.2 mm |
-
-Revision C is **24.3% smaller than B** and **49.7% smaller than the original**, by bounding rectangle area. Both headers remain identical standard **2×10, 2.54 mm, vertical through-hole** parts. All 33 original GPIO/interface signals plus reset remain exposed. Header pin assignments are unchanged from B; the headers exchange physical sides.
-
-## Placement changes in C
-
-- Rotated the MCU 90° to put USB pins toward the connector and oscillator/analog pins toward the lower component group.
-- Moved USB and the boot switch onto the top edge, with the regulator directly below the switch. Grouped its output tantalum and ceramic capacitors alongside it and placed the input capacitor beside its input pin.
-- Placed each MCU supply decoupler by its corresponding supply pin. Grouped the crystal, load capacitors, reset capacitor and analog bypass capacitors below the MCU.
-- Aligned the pull resistors as a compact group above the MCU, freeing its left-side escape routing. Grouped the power LED and its resistor on the right.
-- Retained all four M2 holes. The lower pair is inside the header rows, eliminating the former bottom margin. Footprint courtyard checks pass, including the mounting-hole clearances.
-- Rebuilt routing around the new placement, reserving short crystal/USB connections and supply paths first. Added ten ground stitching vias, including a dedicated connection for the VDDA bypass capacitor's ground island.
-- Rebuilt the rear pin legends as aligned columns with explicit pin numbers; front labels identify both headers, RUN/BOOT and the power indicator.
-
-Mounting centers measured from the outline's upper-left bounding corner, looking from the top (X right, Y down):
-
-| Hole | X (mm) | Y (mm) |
+| | v1.1 | v1.2 |
 |---|---:|---:|
-| H1 | 3.0 | 2.8 |
-| H2 | 31.0 | 2.8 |
-| H3 | 10.0 | 30.0 |
-| H4 | 24.5 | 30.0 |
+| Outline | 34 × 33 mm | **33.19 × 25.5 mm** |
+| Area | 1122 mm² | **846 mm² (−24.6%)** |
+| Headers | 2 × 2×10, 2.54 mm | same |
+| M2 mounting holes | 4 | 4 |
+| Front pin labels | none | all 40 pins |
+| Parts (excl. holes) | 30 | 33 |
 
-These are revised mounting positions. Use the current board/drill data for mechanical design.
+The board is now exactly as tall as the headers (25.4 mm body + edge clearance). Its width comes from the top row: hole, USB-C, hole, plus the two headers and their label strips.
 
-## Findings corrected
+## Changes and rationale
 
-- Two incomplete ground thermals in the original board. Revision C has ground pours on both layers, direct ground connections at the USB connector and small SMD ground pads, header thermals, and ten ground stitching vias.
-- USB shield was explicitly unconnected; it is now bonded to circuit ground. The connector remains the same GCT USB4085 footprint/pinout.
-- PB2/BOOT1 was floating at reset. Added R8, 10k to GND, while keeping PB2 on the header. This makes the BOOT0 switch select flash or the system bootloader predictably unless external circuitry overrides PB2.
-- C6 changed from 10nF to 100nF, retaining C7=1uF on VDDA, following ST's decoupling guidance.
-- C12 changed from 22uF to 4.7uF on USB VBUS to reduce the directly connected input capacitance/inrush. This alone is not an inrush compliance measurement.
-- C13 changed from ceramic 0805 to a polarized 22uF/10V solid-tantalum case-A footprint for the AMS1117 output. The exact capacitor MPN/ESR still needs selection; the previous ceramic supplier ID must not be reused.
-- The MCU symbol previously identified an STM32F103C4 despite its C8 value. It now uses the C8 symbol and datasheet with the same physical pin mapping.
-- Removed the mixed SMD/THT header assortment and misleading/colliding header labels. Rear silkscreen now lists all 40 pin numbers and GPIO names; front marks headers, RUN/BOOT and power LED.
-- Short, locked crystal and USB routes were laid out before routing the remaining signals. Crystal routes have no vias. USB D+ has no vias; D− uses two for the short connector-side crossover. Total copper per net including contact ties/branches is 13.1 mm (D+) and 13.0 mm (D−); these are not endpoint-to-endpoint length-matching measurements. Crystal net totals are 3.9 mm and 12.0 mm.
-- Power routing uses a 0.30 mm preferred width, with short 0.25 mm MCU decoupling connections. General signals use 0.15 mm and USB/crystal use 0.20 mm. Clearance remains 0.13 mm. Vias are 0.60/0.30 mm diameter/drill. The project minimum via diameter was changed accordingly, retaining 0.13 mm minimum annular ring. Silkscreen clearance was increased from 0 to 0.10 mm and the final board still passes.
-- Bottom copper is correctly classified as a signal layer. Project-local library tables fix missing-library warnings. Existing trimmed USB/switch silkscreen geometry is stored explicitly in `nicklink.pretty`; copper/pad geometry was preserved.
+**Size**
+- The board height equals the header length. Previously 6 mm sat above the headers for the USB connector, switch and holes. All four holes moved into the middle column: the top pair flank the USB connector, the bottom pair flank the crystal.
+- Hole footprints use ISO 7380 button-head keep-outs (3.5 mm head, 4.1 mm courtyard) instead of the generic 5 mm.
+- AMS1117 (SOT-223) plus a 22 µF tantalum became a TLV75533 (2×2 mm WSON) with 1 µF ceramics. This saves about 45 mm² and removes the open question about tantalum ESR.
+- USBLC6 in SOT-666, LEDs in 0402, ferrite bead in 0402.
+- The 3.0 × 2.5 mm Omron B3U buttons sit in the side channels between the MCU and the headers. Traces pass between their pads and underneath on the bottom layer.
+- The project-local USB4085 courtyard is now the shield pads + 0.25 mm. Before, it was about 0.3 mm wider per side than the copper.
+
+**Front labels** (requested): the header plastic covers its whole footprint, so labels sit in 1.2 mm strips beside each pin column. The text is 0.8 mm tall, rotated, in short form (`A9`, `B12`, `RST`). This costs about 3.2 mm of width compared with a label-free layout and is the main reason v1.2 isn't narrower. The project copies of the header and button footprints have no silkscreen so the labels fit; their copper is unchanged from KiCad's library.
+
+**Quality-of-life fixes**
+- **5 V on J1.1:** USB VBUS → 1N5819WS → 5V rail. The diode lets the 5V pin act as an input without back-feeding the USB host. Input must stay ≤ 5.5 V (TLV755 maximum).
+- **RESET button** on NRST. NRST now sits on J3.10, beside SWDIO/SWCLK/SWO, so a debugger connects to one header.
+- **BOOT button** replaces the BOOT0 slide switch: hold BOOT, tap RESET. 10 kΩ pull-down on BOOT0; the 10 kΩ PB2/BOOT1 pull-down is kept.
+- **8 MHz crystal** (YXC X32258MOB4SI, 12 pF load, 15 pF C0G caps). 16 MHz worked electrically, but 8 MHz matches the clock trees that Blue Pill, STM32duino and CubeMX assume, and sits mid-range of the 4–16 MHz HSE spec. Gain margin is about 73 by AN2867 (requirement ≥ 5).
+- **I2C pull-ups removed** from PB6/PB7. They were fixed, undocumented and stiff (1.5 kΩ), and most I2C modules bring their own.
+- **User LED** on PC13, active low (sink only).
+- **ESD:** USBLC6-2P6 on D+/D− with 100 nF on its VBUS pin, per ST's layout guidance.
+
+**Pinout:** header pins follow the MCU's package order, so the fanout is nearly planar. Function pairs share a row: UART1, SWDIO/SWCLK, SWO/NRST, I2C1, CAN, UART2, SPI2. Both headers have 3V3 and GND; J1 adds 5V.
+
+## Routing
+
+The board is autorouted with Freerouting after placement, on two layers with GND pours on both. Stitching vias are added afterwards and kept clear of silkscreen text. The design rules are unchanged from v1.1:
+
+- Tracks: 0.15 mm signal, 0.30 mm power, 0.25 mm ground.
+- Clearance: 0.13 mm.
+- Vias: 0.6 / 0.3 mm.
+- Copper to edge: 0.2 mm.
+
+Critical nets, from `tools/netreport.py`:
+
+| Net | Routing |
+|---|---|
+| HSE_IN / HSE_OUT | 6.0 / 4.2 mm, top layer only, no vias |
+| USB_D+ / USB_D− | 10.9 mm (top only) / 15.6 mm (2 vias), including the pull-up branch. Fine for 12 Mbit/s full speed; not an impedance-controlled pair. |
+| VDDA | through the 0402 ferrite, 100 nF + 1 µF at the pin |
 
 ## Verification
 
-KiCad **10.0.4**, on the final saved board:
+KiCad 10.0.6 (Docker `kicad/kicad:10.0`):
 
-- ERC: **0 errors, 0 warnings** (`final-erc.rpt`).
-- DRC, including all track errors, zone refill and schematic parity: **0 violations, 0 unconnected items, 0 parity issues** (`final-drc.json`).
-- No DRC exclusions were added. Existing ERC ignored-check settings were retained and appear in the ERC report.
-- Exported netlist compared pin-by-pin with the intended transformation: every retained circuit pin and every new header pin matched.
-- Front/back renders and copper plots visually inspected. The schematic is unchanged from revision B. The assembly drawing carries component references omitted from crowded front silkscreen.
+- ERC: **0 errors, 0 warnings** (`checks/final-erc.rpt`). The v1.1 ignored-check set is unchanged.
+- The netlist exported from the schematic is checked pin-by-pin against `tools/spec.py` (`tools/check_netlist.py`).
+- DRC with schematic parity and all track errors: **0 violations, 0 unconnected, 0 parity issues** (`checks/final-drc.json`). No DRC exclusions.
+- Front/back renders and copper plots inspected.
 
-These checks establish connectivity and geometric clearance. They do not establish signal integrity, ESD immunity, regulator stability under every load, USB compliance, or successful operation of an assembled prototype.
+These checks establish connectivity and geometry. They do not establish signal integrity, ESD performance, regulator thermals or a working prototype.
 
-## Remaining design/bring-up items
+## Open items / bring-up risks
 
-1. **USB and CAN cannot operate simultaneously on this STM32F103.** They share packet RAM. The board supports using either interface; simultaneous operation requires an architectural change, not a reroute. CAN pins PB8/PB9 are 3.3V logic for an **external CAN transceiver**, not CANH/CANL, and need the appropriate firmware remap.
-2. **The existing `.ioc` clock configuration is not ready for this 16MHz crystal/USB design.** It still records an HSI-derived 8MHz configuration. Configure HSE=16MHz and a valid 48MHz USB clock before testing USB. Firmware was not changed. BOOT selects the factory USART1 bootloader on this part; it does not add a factory USB DFU bootloader.
-3. **Choose exact C12, C13 and Y1 parts before assembly.** Validate C13's ESR/stability with the actual AMS1117 manufacturer. Match Y1 load capacitance to the retained 10pF C0G capacitors, including pin/PCB parasitics. Previous supplier codes are carried over only where useful and are marked unvalidated.
-4. **No external USB ESD protection or USB power current limiter is fitted.** Decide whether to add them for the intended handling/environment. The short two-layer USB route has not been designed against a fabricator-specific 90-ohm stackup or electrically compliance-tested; the bottom return copper is shared with GPIO routing. A clean DRC is not a USB compliance result.
-5. **3V3 header pins are outputs when USB supplies the board.** There is no source selection or reverse-current protection. Do not connect another powered 3V3 source at the same time. Check regulator temperature and total USB current with the intended external load; do not infer an available 800mA header budget from the regulator nameplate.
-6. **First article checks:** continuity/short check before power, current-limited 5V startup, 3V3/VDDA measurement, SWD attach/reset, oscillator startup, then USB enumeration in both cable orientations and the chosen peripheral tests. C13 is polarized; pad 1 is positive.
-
-## Header pinout
-
-Top view, USB at the top: **J3 is left, J1 is right** (opposite physical sides from revision B). Pin 1 is the square pad at the upper left of each header. Odd pins run down the left column and even pins down the right. The back-side legend uses explicit pin numbers; do not reinterpret it as a top-view pin drawing.
-
-| Pin | J1 | J3 |
-|---:|---|---|
-| 1 | 3V3 regulated output | 3V3 regulated output |
-| 2 | GND | GND |
-| 3 | PC13 | PB8 / CAN RX logic |
-| 4 | PC14 | PB9 / CAN TX logic |
-| 5 | PC15 | PB6 / I2C SCL |
-| 6 | NRST / reset | PB7 / I2C SDA |
-| 7 | PA0 | PB5 |
-| 8 | PA1 | PB4 |
-| 9 | PA2 | PB3 |
-| 10 | PA3 | PA15 |
-| 11 | PA4 | PA14 / SWCLK |
-| 12 | PA5 / SPI SCK | PA13 / SWDIO |
-| 13 | PA6 / SPI MISO | PA9 / UART TX |
-| 14 | PA7 / SPI MOSI | PA10 / UART RX |
-| 15 | PB0 | PA8 |
-| 16 | PB1 | PB15 |
-| 17 | PB2 / BOOT1 (10k pull-down) | PB14 |
-| 18 | PB10 | PB13 |
-| 19 | PB11 | PB12 |
-| 20 | GND | GND |
-
-For SWD connect J3.11=SWCLK, J3.12=SWDIO, J3.1=target voltage reference, and J3.2 or J3.20=GND. Reset is J1.6. Do not use a debugger's powered supply output as the target-voltage sense connection when USB is powering the board.
-
-`pinout.csv` also maps each new signal to its original header pin(s).
-
-## Deliverables
-
-- Root `nicklink.kicad_pcb`, `nicklink.kicad_sch`, `nicklink.kicad_pro`: current revision C.
-- `docs/images/top.png`, `docs/images/bottom.png`: current visual previews.
-- `docs/schematic.pdf`, `docs/assembly.pdf`, `docs/copper.pdf`: review drawings.
-- `docs/pinout.csv`, `docs/REVIEW.md`: pin mapping and this report.
-- `fabrication/v1.1/`: Gerbers, separate plated/non-plated drill files, BOM and SMD placement CSV (`nicklink_BOM.csv`, `nicklink_CPL.csv`). Placement rotations and component sourcing require assembler review.
-- `checks/`: saved KiCad DRC/ERC reports for the final board.
-- `nicklink.pretty/`: project-local USB connector and boot-switch footprints.
-
-## Reference documents
-
-- [ST AN2586: STM32F10xxx hardware design, decoupling and boot configuration](https://www.st.com/resource/en/application_note/an2586-getting-started-with-stm32f10xxx-hardware-development-stmicroelectronics.pdf).
-- [ST STM32F103x8/xB datasheet](https://www.st.com/resource/en/datasheet/stm32f103c8.pdf).
-- [ST AN4879: USB hardware and PCB guidelines, including USB/CAN shared-memory limitation](https://www.st.com/resource/en/application_note/DM00296349-.pdf).
-- [AMS1117 manufacturer datasheet](http://www.advanced-monolithic.com/pdf/ds1117.pdf). Manufacturer site was unavailable during this review; final capacitor sourcing remains explicitly open. A distributor-hosted manufacturer datasheet was also consulted.
-- [TI USB peripheral VBUS capacitance guidance](https://e2e.ti.com/support/processors-group/processors/f/processors-forum/1041212/amic110-usb-peripheral-design-guide).
-- [C&K PCM12 slide-switch datasheet](https://www.ckswitches.com/media/1424/pcm.pdf).
+1. **Regulator thermals.** The 250 mA 3V3 budget assumes about 150 °C/W on this two-layer board, an estimate scaled from TI's 100 °C/W four-layer figure. Measure the temperature at the intended load.
+2. **Crystal load.** 15 pF assumes 3–5 pF stray. If the HSE measures fast, use 18 pF (LCSC C1549).
+3. **JLC Extended parts** (each adds a loading fee): TLV75533, USBLC6-2P6 (genuine ST stock is limited; a TECH PUBLIC alternative exists), B3U buttons, the 8 MHz crystal, the 0402 ferrite, and possibly the LEDs. See `tools/parts_research.md`.
+4. **The USB-C connector and headers are hand-soldered** (through-hole).
+5. **First article:** short check; current-limited 5 V; measure 5V/3V3/VDDA; SWD attach and RESET button; HSE startup; USB enumeration in both orientations; BOOT+RESET into the USART1 bootloader; user LED; then the peripherals you need.
