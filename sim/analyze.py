@@ -535,6 +535,52 @@ def v13():
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------- 12 J1.1 hot-plug + long cables
+def j11():
+    """Bench 12: supply hot-plugged onto J1.1 (R12 not in that path) and 1.5-3 uH USB cables. U2 is passive
+    (Iq only), so one run covers the as-built TLV755 (6.0 V abs max) and the proposed TLV76733 (18 V)."""
+    jc, uc = {}, {}
+    for name, rest in cases("12_j11_hotplug.log"):
+        p = dict(kv.split("=") for kv in rest.split())
+        t, vb, vs, v5, vh, iu, ih = load(name)
+        pk = max(vs.max(), v5.max())
+        if p["src"] == "1":
+            jc.setdefault((float(p["V"]), float(p["L"]), float(p["R"]), float(p["RF1"])), {})[int(p["CM"])] = pk
+        else:
+            k = (float(p["V"]), float(p["L"]), float(p["R"]))
+            uc[k] = max(uc.get(k, 0), vs.max())
+    vd = lambda v, lim: "PASS" if v <= lim else "FAIL"
+    lines = ["J1.1 hot-plug, USB unplugged: stiff supply stepped onto J1.1 through leads L/R, then Q1 -> F1 -> VSYS "
+             "(C12 4.7u 0402 + U2 IN/EN). Peak = max(VSYS, 5V_F). Bias = sim/ C12 fit (V0 3.1, extrapolated above 10 V); "
+             "linear = 1.3 uF fixed. Limits: TLV755 VIN/EN 6.0 V (as built); TLV76733 swap: Q1 VGS +-12 V (= -V(5V_F)), C12/F1 16 V.",
+             "| Supply | Leads L / R | F1 | Peak, bias C12 | Peak, linear 1.3 uF | As built (6.0 V) | TLV76733 swap (12 V) |",
+             "|---|---|---|---|---|---|---|"]
+    for (v, l, r, f), d in sorted(jc.items()):
+        hi = max(d.values())
+        lines.append(f"| {v:g} V | {l*1e6:g} uH / {r:g} ohm | {f:g} ohm | {d[0]:.2f} V | {d[1]:.2f} V | {vd(hi, 6.0)} | {vd(hi, 12.0)} |")
+    lines += ["", "USB hot-plug with long cables (U3 BV 6 / 9 V, worst of the two), bias-dependent C12, J1.1 open:",
+              "| VBUS source | Cable L / R | LDO IN peak | As built (6.0 V) | TLV76733 swap (12 V) |", "|---|---|---|---|---|"]
+    for (v, l, r), pk in sorted(uc.items()):
+        lines.append(f"| {v:g} V | {l*1e6:g} uH / {r:g} ohm | {pk:.2f} V | {vd(pk, 6.0)} | {vd(pk, 12.0)} |")
+    bias = [d[0] for d in jc.values()]; lin = [d[1] for d in jc.values()]
+    n_ok = sum(max(d.values()) <= 6.0 for d in jc.values())
+    row("12 J1.1 hot-plug", "As built: 5.0 / 5.5 V supply plugged onto J1.1 (leads 0.1-2 uH, F1 0.1 / 0.3 ohm); VSYS <= 6.0 V (TLV755 abs max)",
+        f"VSYS pk {min(lin):.2f}..{max(lin):.2f} V (linear C12), up to {max(bias):.1f} V (bias C12); {n_ok} of {len(jc)} corners <= 6.0 V",
+        "PASS" if n_ok == len(jc) else "FAIL", key=1.1)
+    u525 = max(pk for (v, l, r), pk in uc.items() if v == 5.25 and l <= 2e-6)
+    u_all = max(uc.values())
+    row("12 J1.1 hot-plug", "As built: USB hot-plug, 1.5-3 uH cables (2-4 m), 5.25 / 5.5 V; LDO IN <= 6.0 V",
+        f"<= 2 uH at 5.25 V: {u525:.2f} V; worst (3 uH, 5.5 V): {u_all:.2f} V",
+        "PASS" if u_all <= 5.8 else "MARGIN" if u525 <= 6.0 else "FAIL", key=1.1)
+    over = sum(b > 12.0 for b in bias)
+    row("12 J1.1 hot-plug", "U2 -> TLV76733 (18 V) + C12 16 V: J1.1 hot-plug peak <= 12 V (Q1 VGS)",
+        f"linear C12 max {max(lin):.2f} V; bias C12 max {max(bias):.2f} V ({over} of {len(bias)} corners > 12 V, all 1-2 uH with F1 at 0.1-0.3 ohm)",
+        "PASS" if max(bias) <= 12 else "MARGIN" if max(lin) <= 12 else "FAIL", top=False, key=12.0)
+    row("12 J1.1 hot-plug", "U2 -> TLV76733: USB hot-plug with 1.5-3 uH cables <= 12 V", f"worst {u_all:.2f} V",
+        vd(u_all, 12.0), top=False, key=12.1)
+    return "\n".join(lines)
+
+
 def main():
     hp, hp_all = hotplug()
     sections = [("1 USB hot-plug (hotplug_variants.png, hotplug_base.png)", hp), ("2 LDO (ldo_steps.png)", ldo()),
@@ -544,7 +590,8 @@ def main():
                  ("7 Crystal (analytic, xtal.py)", crystal()), ("8 VDDA filter (vdda.png)", vdda()),
                  ("9 Hot-plug fix candidates (hotplug_fixes.png)", hotplug_fixes()),
                  ("10 C12 as RC snubber (snubber.png)", snubber()),
-                 ("11 Hot-plug, current spec.py power path (R12 + C12 4.7u 0402, no C5)", v13())]
+                 ("11 Hot-plug, current spec.py power path (R12 + C12 4.7u 0402, no C5)", v13()),
+                 ("12 Hot-plug into J1.1 and long USB cables (U2 passive)", j11())]
     top = sorted((r for r in ROWS if r[4]), key=lambda r: r[5])
     other = sorted((r for r in ROWS if not r[4]), key=lambda r: r[5])
     table = ["| Test | Check | Result | Verdict |", "|---|---|---|---|"] + [f"| {a} | {b} | {c} | **{d}** |" for a, b, c, d, *_ in top]

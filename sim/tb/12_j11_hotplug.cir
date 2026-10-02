@@ -1,0 +1,130 @@
+* 12 Hot-plug into the 5V pin (J1.1) and long USB cables, U2 modelled as a passive input.
+* Path (current spec.py): VBUS (C13, U3, R2+R11 bleed) -> R12 1R -> VBUS_D -> D2 -> VSYS
+*   = U2 IN/EN + C12 ; VSYS -> F1 PTC -> 5V_F -> Q1 (G=GND) -> J1.1.
+* U2 = TLV76733DRV (proposed swap; VIN/EN abs max 18 V) or TLV75533 (as built; 6.0 V): either
+*   draws ~nothing from IN before soft-start, so U2 is its Iq only (83 kohm) and the 3V3 side is
+*   left out. The ring peak is set by the passive network; LDO behaviour is not simulated here.
+* C12 = 4.7 uF 0402 X5R 16 V (CL05A475MO5NUNC, proposed). CM=0: bias-dependent C, same fit as
+*   the 10 V part (V0 = 3.1, 28 % at 5 V; the 16 V part's curve is not verified); CM=1: linear
+*   1.3 uF (the 5 V value) as a bracket, because the bias fit is extrapolated above 10 V.
+* SRC=1: stiff supply stepped onto J1.1 through leads LC/RC, USB unplugged (VSRC 5.0 / 5.5 V;
+*   leads 0.1 uH/30 mOhm short stiff link .. 2 uH/0.1 ohm long bench leads; F1 0.1 ohm min /
+*   0.3 ohm typical). SRC=0: USB plugged with 1.5 / 2 / 3 uH cables (2-4 m), 5.25 / 5.5 V,
+*   USBLC6 BV 6 / 9 V.
+* Pass (analyze.py): as built, VSYS <= 6.0 V (TLV755 VIN/EN abs max). Proposed swap: VSYS and
+*   5V_F <= 12 V, the lowest rating left in the path (Q1 VGS = -V(5V_F), +-12 V; C12/F1 16 V,
+*   TLV767 18 V).
+.include models/parts.lib
+.include models/caps.lib
+.param VSRC=5.0 LC=1u RC=0.1 BV=6 RF1=0.1 CM=0 SRC=1
+Vu usrc 0 PWL(0 0 10n {SRC==0 ? VSRC : 0})
+Vi usrc u1 0
+Lcu u1 u2 {SRC==0 ? LC : 1n}
+Rcu u2 vbus {SRC==0 ? RC : 1e9}
+XC13 vbus 0 C100N0402_NL
+XU3 vbus 0 USBLC6_VBUS BV={BV}
+Rdp vbus 0 6.9k
+R12 vbus vbus_d 1.0
+D2 vbus_d vsys D1N5819WS
+Rs0 vsys c0 {CM==0 ? 1m : 1e9}
+XC12 c0 0 MLCC_NL C0=4.7u V0=3.1 ESR=10m ESL=0.3n
+Rs1 vsys c1 {CM==1 ? 10m : 1e9}
+C12L c1 0 1.3u
+RU2 vsys 0 83k
+RF1 vsys n5f {RF1}
+XQ1 n5f hdr DMP2165UW_GGND
+Chdr hdr 0 10p
+Vh hsrc 0 PWL(0 0 10n {SRC==1 ? VSRC : 0})
+Vih hsrc h1 0
+Lch h1 h2 {SRC==1 ? LC : 1n}
+Rch h2 hdr {SRC==1 ? RC : 1e9}
+.tran 2n 40u 0 20n
+.control
+let n = 0
+* J1.1 hot-plug: 2 V x 5 leads x 2 F1 x 2 C12 models
+compose jv values 5.0 5.5
+compose jl values 0.1u 0.25u 0.5u 1u 2u
+compose jr values 0.03 0.05 0.1 0.1 0.1
+compose jf values 0.1 0.3
+let a = 0
+while a < 2
+  let b = 0
+  while b < 5
+    let c = 0
+    while c < 2
+      let d = 0
+      while d < 2
+        alterparam SRC = 1
+        let x = jv[a]
+        alterparam VSRC = $&x
+        let x = jl[b]
+        alterparam LC = $&x
+        let x = jr[b]
+        alterparam RC = $&x
+        let x = jf[c]
+        alterparam RF1 = $&x
+        alterparam CM = $&d
+        reset
+        run
+        set ns = "$&n"
+        let p = jv[a]
+        let q = jl[b]
+        let r = jr[b]
+        let s = jf[c]
+        echo "CASE j11_{$ns} src=1 V=$&p L=$&q R=$&r RF1=$&s CM=$&d BV=6"
+        wrdata results/j11_{$ns}.dat v(vbus) v(vsys) v(n5f) v(hdr) i(vi) i(vih)
+        destroy all
+        let n = n + 1
+        let d = d + 1
+      end
+      let c = c + 1
+    end
+    let b = b + 1
+  end
+  let a = a + 1
+end
+* USB long-cable hot-plug: 2 V x 3 L x 2 R x 2 BV, bias-dependent C12
+compose uv values 5.25 5.5
+compose ul values 1.5u 2u 3u
+compose ur values 0.1 0.25
+compose ub values 6 9
+let a = 0
+while a < 2
+  let b = 0
+  while b < 3
+    let c = 0
+    while c < 2
+      let d = 0
+      while d < 2
+        alterparam SRC = 0
+        alterparam CM = 0
+        alterparam RF1 = 0.1
+        let x = uv[a]
+        alterparam VSRC = $&x
+        let x = ul[b]
+        alterparam LC = $&x
+        let x = ur[c]
+        alterparam RC = $&x
+        let x = ub[d]
+        alterparam BV = $&x
+        reset
+        run
+        set ns = "$&n"
+        let p = uv[a]
+        let q = ul[b]
+        let r = ur[c]
+        let s = ub[d]
+        echo "CASE j11_{$ns} src=0 V=$&p L=$&q R=$&r RF1=0.1 CM=0 BV=$&s"
+        wrdata results/j11_{$ns}.dat v(vbus) v(vsys) v(n5f) v(hdr) i(vi) i(vih)
+        destroy all
+        let n = n + 1
+        let d = d + 1
+      end
+      let c = c + 1
+    end
+    let b = b + 1
+  end
+  let a = a + 1
+end
+.endc
+.end

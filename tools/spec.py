@@ -73,14 +73,15 @@ PARTS = {
     # without it the LDO input rings to ~12 V, past its 6.0 V abs max; with 1.0 ohm and C12 4.7 uF it peaks at 5.38 V).
     "R12": ("Device:R", "1R", "Resistor_SMD:R_0805_2012Metric", {"1": "VBUS", "2": "VBUS_D"}, {"Note": "Hot-plug damping (anti-surge, 500 mW)", "MPN": "YAGEO SR0805FR-471RL"}),
     "D2": ("Device:D_Schottky", "1N5819WS", "Diode_SMD:D_SOD-323", {"1": "VSYS", "2": "VBUS_D"}, {"Note": "Blocks back-feed from VSYS / the 5V pin into USB"}),  # 1=K, 2=A
-    "C12": ("Device:C", "4u7", "Capacitor_SMD:C_0402_1005Metric", {"1": "VSYS", "2": "GND"}, {"Note": "LDO input (10 V X5R; USB allows <= 10 uF)"}),
+    "C12": ("Device:C", "4u7 16V", "Capacitor_SMD:C_0402_1005Metric", {"1": "VSYS", "2": "GND"}, {"Note": "LDO input, 16 V X5R (J1.1 hot-plug ring); USB allows <= 10 uF", "MPN": "Samsung CL05A475MO5NUNC"}),
     "F1": ("Device:Polyfuse", "0.5A", "Fuse:Fuse_0805_2012Metric", {"1": "VSYS", "2": "5V_F"}, {"Note": "5V pin short / reverse-supply limit: Ihold 0.5 A, Itrip 1 A, 16 V", "MPN": "LUTE 0805L050/16XR"}),
     # SOT-323 G-S-D = 1-2-3, same as the library's DMG2301L symbol (SOT-23); footprint overridden.
     "Q1": ("Transistor_FET:DMG2301L", "DMP2165UW", "nicklink:SOT-323_SC-70_NoSilk", {"1": "GND", "2": "5V_F", "3": "+5V"}, {"Note": "5V pin reverse-polarity switch (gate to GND)", "MPN": "Diodes DMP2165UW-7"}),
-    # TLV75533PDRV (WSON-6 2x2): 1 OUT, 3 GND, 4 EN, 6 IN, 7 exposed pad (GND), 2/5 NC
-    "U2": ("Regulator_Linear:TLV75533PDRV", "TLV75533PDRV", "nicklink:WSON-6-1EP_2x2mm_P0.65mm_EP1x1.6mm_ThermalVias03", {
-        "1": "+3.3V", "3": "GND", "4": "VSYS", "6": "VSYS", "7": "GND",
-    }, {}),
+    # TLV76733DRVR (WSON-6 2x2, DRV0006A like the TLV755): 1 OUT, 2 SNS (tie to OUT), 3 GND, 4 EN, 5 GND,
+    # 6 IN, 7 exposed pad (GND). VIN/EN rated 18 V abs max: survives J1.1 hot-plug ringing (sim bench 12).
+    "U2": ("nicklink:TLV76733DRV", "TLV76733DRVR", "nicklink:WSON-6-1EP_2x2mm_P0.65mm_EP1x1.6mm_ThermalVias03", {
+        "1": "+3.3V", "2": "+3.3V", "3": "GND", "4": "VSYS", "5": "GND", "6": "VSYS", "7": "GND",
+    }, {"MPN": "TI TLV76733DRVR"}),
     "C8": ("Device:C", "1u", "Capacitor_SMD:C_0402_1005Metric", {"1": "+3.3V", "2": "GND"}, {"Note": "LDO output"}),
 
     # --- LEDs ---------------------------------------------------------------
@@ -131,9 +132,9 @@ PARTS = {
 
 # Verified JLC/LCSC part numbers (tools/parts_research.md). "" = choose at order time.
 LCSC = {
-    "U1": "C8734", "U2": "C2861750", "U3": "C15999", "D2": "C191023", "J2": "C7095263",
+    "U1": "C8734", "U2": "C2848334", "U3": "C15999", "D2": "C191023", "J2": "C7095263",
     "Y1": "C2682775", "C10": "C1548", "C11": "C1548", "SW1": "C231329", "SW2": "C231329",
-    "FB1": "C85812", "C12": "C23733", "C4": "C23733", "R12": "C873764", "F1": "C22435898", "Q1": "C388477",
+    "FB1": "C85812", "C12": "C318563", "C4": "C23733", "R12": "C873764", "F1": "C22435898", "Q1": "C388477",
     "U4": "C5267406", "D1": "C264407", "D3": "C74338",
 }
 for _ref, (_sym, _val, _fp, _pins, _extra) in PARTS.items():

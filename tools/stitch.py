@@ -36,6 +36,12 @@ for fp in b.GetFootprints():
             pos = p.GetPosition()
             holes.append((pcbnew.ToMM(pos.x), pcbnew.ToMM(pos.y), pcbnew.ToMM(max(p.GetSize(pcbnew.F_Cu).x, p.GetSize(pcbnew.F_Cu).y, p.GetDrillSize().x, p.GetDrillSize().y)) / 2))  # oval slots: long axis
 # keep vias off silkscreen text so labels stay readable
+smd = []  # SMD pad boxes: no stitching via in or next to a pasted pad (solder wicking)
+for fp in b.GetFootprints():
+    for p in fp.Pads():
+        if not p.HasHole():
+            bb = p.GetBoundingBox()
+            smd.append(tuple(pcbnew.ToMM(v) for v in (bb.GetLeft(), bb.GetTop(), bb.GetRight(), bb.GetBottom())))
 texts = []
 for item in list(b.GetDrawings()) + [g for fp in b.GetFootprints() for g in fp.GraphicalItems()]:
     if item.Type() == pcbnew.PCB_TEXT_T and item.GetLayer() in (pcbnew.F_SilkS, pcbnew.B_SilkS):
@@ -54,6 +60,7 @@ while y < y1 - 0.8:
         ok = all(inner[l].Contains(pt) for l in inner)
         ok = ok and all(math.dist((x, y), (hx, hy)) > hr + VIA_D / 2 + 0.35 for hx, hy, hr in holes)
         ok = ok and all(math.dist((x, y), v) > 1.1 for v in placed)
+        ok = ok and not any(px0 - VIA_D / 2 - 0.15 < x < px1 + VIA_D / 2 + 0.15 and py0 - VIA_D / 2 - 0.15 < y < py1 + VIA_D / 2 + 0.15 for px0, py0, px1, py1 in smd)
         ok = ok and not any(tx0 - 0.35 < x < tx1 + 0.35 and ty0 - 0.35 < y < ty1 + 0.35 for tx0, ty0, tx1, ty1 in texts)
         if ok:
             v = pcbnew.PCB_VIA(b)

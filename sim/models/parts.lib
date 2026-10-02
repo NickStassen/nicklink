@@ -64,3 +64,14 @@ C1 m b 1p
 *---------------------------------------------------------------------------------------------
 * Generic switch for buttons / open-drain outputs (control > 0.5 V = closed).
 .model SWX SW(VT=0.5 VH=0.01 RON=0.2 ROFF=1e9)
+
+*---------------------------------------------------------------------------------------------
+* Q1 Diodes DMP2165UW (SOT-323 P-FET) as wired on the board: G = GND, S = 5V_F, D = J1.1.
+* Body diode D -> S (VSD 0.7 V typ / 1.1 V max at 1 A, DS40439 p.2) plus a bidirectional channel
+* that is on while V(S) > ~1.2 V (VGS = -V(S); VGS(th) -0.4..-1.0 V), RDS(on) 90 mOhm max at -4.5 V.
+.subckt DMP2165UW_GGND s d
+Dbody d s DQB
+Sch s d s 0 SQ
+.model DQB D(IS=1n N=1.3 RS=0.05 CJO=70p)
+.model SQ SW(VT=1.2 VH=0.1 RON=0.09 ROFF=1e7)
+.ends

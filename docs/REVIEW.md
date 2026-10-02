@@ -15,21 +15,22 @@ v1.3 adds an on-board 6-axis IMU for motion tracking, robotics and tap-activated
 | SCL / SDA | PB6 / PB7 (I2C1) | 4.7 kΩ pull-ups R7/R9 back on the bus |
 | SDO/SA0 | GND | I2C address 0x6A |
 | CS | 3V3 | I2C mode |
-| INT1 | PA0 | WKUP pin: tap or motion can wake the MCU from Standby |
+| INT1 | PA0 through R10 10 kΩ | WKUP pin: tap or motion can wake the MCU from Standby; R10 limits INT1's power-up low state to a weak pull-down |
 | VDD, VDDIO | 3V3, each with its own 100 nF | datasheet recommendation |
 | SDx, SCx | GND | datasheet: "connect to Vdd_IO or GND" (must not float) |
-| INT2, OCS_Aux, SDO_Aux | not connected | INT2 drives low by default; the aux pins have internal pull-ups |
+| INT2 | not connected | drives low by default; every interrupt source can route to INT1 |
+| OCS_Aux, SDO_Aux | 3V3 | datasheet allows tying them to VDDIO; gives CS a short path to VDD |
 
 The connections were checked against datasheet DS13510 (see `tools/imu_research.md`). The schematic uses a project symbol (`nicklink.kicad_sym`) with the LSM6DSM pinout, which is identical, and pin types set for I2C use.
 
 **Placement and routing**
-- The IMU sits on the top side, in the right channel between the MCU and J1, below the RESET button. Its caps go in a row underneath, the ferrite moves into the MCU's bottom-right courtyard notch, the 10 µF bulk cap moves to the top-left pocket, and the I2C pull-ups sit beside PB6/PB7. An earlier draft added a 3.3 mm bottom row for the IMU; this layout fits it into existing gaps instead, so the board stays at v1.2's height.
+- The IMU sits on the top side, in the right channel between the MCU and J1, below the RESET button. Its caps and the ferrite go in a row underneath. R10 (INT1) sits in the MCU's bottom-right courtyard notch, and the I2C pull-ups sit beside PB6/PB7. An earlier draft added a 3.3 mm bottom row for the IMU; this layout fits it into existing gaps instead, so the board stays at v1.2's height.
 - The position is away from the LDO's heat (gyro bias drift) and from USB cable strain.
 - Orientation: pin 1 (SA0) is top-left. The VDDIO/GND row faces its caps below, and all SMD bodies stay ≥ 1 mm from the board edge.
 - A top-copper keep-out covers the area inside the IMU's pad ring, per ST's LGA guidance: no tracks, vias or pour under the package.
-- **Deviation:** ST suggests about 10 mm from screws. Here it is about 5 mm (H4), because the board is only 25.5 mm tall. Mount without over-tightening.
+- **Deviation:** ST suggests about 10 mm from screws. Here the H4 screw keep-out is 2.4 mm from the IMU body (5.7 mm centre to centre), because the board is only 25.5 mm tall. Mount without over-tightening.
 - **Crystal nets are now pre-routed** as locked top-layer tracks (HSE_IN 8.1 mm, HSE_OUT 5.1 mm, no vias), so autoroute variation can't push them onto vias.
-- **ESD channels swapped:** USB D+ uses the USBLC6's I/O2 channel and D− uses I/O1. The two channels are identical, and this order means D+ and D− no longer cross at the MCU. USB D+ is 14.9 mm with no vias and D− is 12.8 mm with one via, including the A/B row ties and the pull-up branch.
+- **ESD channels swapped:** USB D+ uses the USBLC6's I/O2 channel and D− uses I/O1. The two channels are identical, and this order means D+ and D− no longer cross at the MCU. USB D+ is 11.8 mm with no vias and D− is 10.9 mm with one via, including the A/B row ties and the pull-up branch (second-wave layout).
 - **Minimum track width lowered from 0.13 mm to 0.10 mm.** This covers Freerouting's 0.112 mm neck-downs at fine-pitch pads, which are within JLC's standard 2-layer capability. The default 0.15 mm signal width is unchanged.
 - Sixteen small parts (passives near USB, the I2C pull-ups, the IMU, its caps and RESET) carry ≤ 0.1 mm offsets, found by a seeded search (`NICKLINK_SEED=13`; the post-review layout uses seed 3). Freerouting's result is very sensitive to placement, and these offsets give 100% routing with short crystal and USB nets.
 
@@ -134,6 +135,58 @@ All 10 pass. Emulation proves the firmware and the pin map, not the silicon.
 - J1.1 has a fuse and reverse protection.
 - The user LED is brighter.
 - The C2 GND return was shortened in the audit round.
+
+
+## Second review wave (2026-10-02)
+
+Five independent reviewers re-checked the reliability-pass board (commit d48be23), one area each. They used the datasheets, the GCT drawing, JLC/LCSC data, the board's copper (traced with the pcbnew API), new SPICE benches and the firmware emulation.
+
+| Area | Grade | Must-fix |
+|---|---|---|
+| Power / protection / SPICE | C+ | A live supply plugged onto J1.1 rings VSYS past the TLV755's 6.0 V absolute maximum (R12 isn't in that path) |
+| MCU core / firmware | B | Emulation suite failing on a stale pin-map expectation; no VTOR, so `stm32flash -g` hangs |
+| USB-C / ESD | B | VBUS_D runs under the shell's GND standoff dimples |
+| IMU / GPIO / full use | B+ | The stale pin-map test above; nothing else |
+| Fab / DFM / CPL | B+ | None. CPL, BOM and JLC limits verified, gerbers reproduce. |
+
+**Fixed:**
+- **U2: TLV75533 → TLV76733DRVR** (C2848334). It uses the same DRV0006A land pattern, and the CPL correction stays 0.
+  - VIN and EN are rated to 18 V.
+  - SNS is tied to OUT and pin 5 to GND (TLV767 Table 5-1).
+  - It still regulates at 250 mA from a 4.40 V port.
+  - New SPICE bench 12 covers J1.1 hot-plug and 1.5–3 µH USB cables.
+- **C12** is now a 16 V X5R part (CL05A475MO5NUNC, C318563).
+- **VBUS_D** hops to B.Cu between the shell legs. An F.Cu keep-out covers the dimples, so nothing else routes there.
+- **IMU:** the pour keep-out grows to 3.5 × 3.0 mm, so the pour stays clear of the GND pads. The bottom GND via moves outside the package body, and the 3V3 rail moves 0.07 mm.
+- **Stitching and repair vias** now keep off SMD pads (`stitch.py`, `fixroute.py`). This removes the via found in Y1's pad.
+- **The router keeps out of the screw-head areas** (r 2 mm) and straightens its paths.
+- **Firmware:**
+  - VTOR is set first in `Reset_Handler`.
+  - The clock comes up from HSI with the PLL off, then the PLL, flash wait states and ADC /6.
+  - CSS has an NMI fallback to HSI, and PVD is set to 2.9 V.
+  - New `standby` (WKUP on A0) and `adc` commands.
+  - Pin-map test fixed; 10/10 pass.
+- **Re-route:**
+  - Net classes: signals are 0.127 mm with 0.127 mm clearance, GND and the 3V3 rails 0.2 mm (3V3 was 0.3 mm), and VBUS/VSYS/5 V stay 0.3 mm.
+  - Seed 3 then routes 100% with Freerouting alone, so no hand-finished copper remains.
+  - DRC 0/0/0 and ERC 0/0. One GND cluster; no via within 0.1 mm of any SMD pad.
+  - Crystal nets unchanged (top layer, no vias).
+- **Docs:**
+  - The 5V-pin output is 4.2–4.4 V at 200 mA, and a J1.1 short resets the MCU once.
+  - No battery on J1.1 while USB is plugged in.
+  - The PC13–15 3 mA limit is a shared total.
+  - I2C1/SPI1-remap (ES096), TIM4/USART1-remap and I2C1-remap conflicts.
+  - Never set the IMU's `I2C_I3C_disable` bit.
+  - The OCS_Aux/SDO_Aux ties and H4 distance corrected; pinout.csv regenerated.
+
+**Not changed (accepted):**
+- **USBLC6 on stubs, not flow-through.** ST's Fig. 7 calls this layout unsuitable. The stubs are about 1.5–2 mm, which adds tens of volts at IEC 8 kV edges. Flow-through needs D+ to swap layers next to U3, and there is no room for that via.
+- **VDDA caps:** C6/C7's copper path is 8–9 mm with two vias, and the FB1/C7 LC filter has a +17 dB peak at 288 kHz. Rotating the caps would force PA1/PA2 onto vias at the 0.5 mm pin pitch.
+- **J1.1 hot-plug with leads over 1 µH:** the most pessimistic capacitor model puts the ring past Q1's ±12 V gate rating. Documented: connect first, then switch the supply on. An extra series resistor would clear every corner, but there is no room for it.
+- **R12 in a J1.1 short while on USB:** 7–13 W for about 0.1 s until F1 trips. That is probably survivable once (Yageo's 5 s overload qualification), but not verified for the ½ W part. Test at first article.
+- **D+ during hot-plug:** the VBUS-derived pull-up can briefly put up to 4.2 V on D+ while the MCU is still unpowered (FT limit 4.0 V at VDD = 0) for a few µs, in 2 of 8 corners.
+- **VTERM:** 3.0–3.6 V holds only for VBUS 4.40–5.28 V; at 5.5 V it reaches 3.75 V (PA12 is FT).
+- **Hard-wired D+ pull-up:** firmware that doesn't use USB still shows a device at the host. Drive PA12 low to hide it.
 
 ---
 

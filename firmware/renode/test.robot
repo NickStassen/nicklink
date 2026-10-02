@@ -43,6 +43,8 @@ Banner Reports 72 MHz From HSE And Power-On Reset
     Start Emulation
     Wait For Line On Uart     NickLink v1.3 board test, SYSCLK 72000000 Hz
     Wait For Line On Uart     clock: HSE 8 MHz -> PLL x9 = 72 MHz
+    # PLLMUL x9 | PLLSRC HSE | PPRE1 /2 | ADCPRE /6 | SW=SWS=PLL
+    Wait For Line On Uart     RCC_CFGR 0x001D840A
     Wait For Line On Uart     reset cause: power-on
     Wait For Line On Uart     boot: flash aliased at 0x0 (BOOT0 was low); BOOT1/PB2 reads 0
     Wait For Line On Uart     ${PROMPT}
@@ -86,7 +88,7 @@ Pins Command Lists Generated Map
     Boot To Prompt
     Write Line To Uart        pins
     Wait For Line On Uart     10\\s+PA0\\s+PA0\\s+J1.19\\s+WKUP / IMU INT1 via 10k; R10 10k to IMU_INT1    treatAsRegex=true
-    Wait For Line On Uart     33\\s+PA12\\s+USB_D\\+\\s+J2 USB, R2 1k5 to \\+3.3V    treatAsRegex=true
+    Wait For Line On Uart     33\\s+PA12\\s+USB_D\\+\\s+J2 USB, R11 4k7 to GND, R2 2k2 to VBUS    treatAsRegex=true
     Wait For Line On Uart     48\\s+VDD\\s+\\+3.3V    treatAsRegex=true
 
 GPIO Walk Drives Each Header Pin Alone

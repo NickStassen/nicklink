@@ -17,9 +17,9 @@ Outputs go to `sim/results/`: `summary.md` (the full report, generated), `*.png`
 
 | File | |
 |---|---|
-| `tb/01_hotplug.cir` … `tb/11_hotplug_v13.cir` | Testbenches. Each header says what it checks and what counts as pass. |
+| `tb/01_hotplug.cir` … `tb/12_j11_hotplug.cir` | Testbenches. Each header says what it checks and what counts as pass. |
 | `models/TLV75533P_TRANS.lib` | **TI vendor model**, SBVM831 "TLV75533P Unencrypted PSpice Transient Model" (ti.com/lit/zip/SBVM831), unmodified |
-| `models/parts.lib` | Fitted models: 1N5819WS, USBLC6 VBUS Zener, SMF5.0A, BLM15AG121 ferrite, Everlight LEDs, switch |
+| `models/parts.lib` | Fitted models: 1N5819WS, USBLC6 VBUS Zener, SMF5.0A, BLM15AG121 ferrite, Everlight LEDs, switch, DMP2165UW (Q1, gate at GND) |
 | `models/caps.lib` | MLCCs with DC-bias derating |
 | `models/board.lib` | The +5V → 3V3 / VDDA rail as one subcircuit (U2, C8, C5, C1–C4, C14, C15, FB1, C6, C7, D1+R3) |
 | `analyze.py` | Metrics, verdicts, plots, `results/summary.md` |
@@ -42,6 +42,7 @@ Outputs go to `sim/results/`: `summary.md` (the full report, generated), `*.png`
   | 100 nF 0402 X7R 16 V | 80 % | 64 % |
 
   C12 and C13 use a voltage-dependent C in the hot-plug test. Everything else uses the linear value at its rail voltage, because ngspice's behavioural capacitor stalls when a node sits still next to the TI model.
+- **DMP2165UW (Q1):** body diode drain → source (0.7 V at 1 A) plus a two-way channel switch, on while V(5V_F) > 1.2 V, 90 mΩ (the gate is tied to GND).
 - **1N5819WS:** fitted to the Hottech typical curve (0.30 V @ 100 mA, 0.37 V @ 500 mA).
 - **LEDs:** fitted through VF at 20 mA (datasheet min/typ/max bins) and the typical IV curve near 1 mA. The low-current end of the min/max bins is assumed.
 - **Ferrite (BLM15AG121SN1D):** 0.10 Ω + (0.45 µH ∥ 150 Ω ∥ 1 pF), about 120 Ω at 100 MHz. This is approximate; Murata's netlist was not used.
@@ -66,6 +67,7 @@ Outputs go to `sim/results/`: `summary.md` (the full report, generated), `*.png`
 9. **Hot-plug fix candidates** (`tb/09_hotplug_fixes.cir`). The power reviewer's topology and its variants (A–D), plus follow-up candidates E–E'', all at the same corners as test 1. Pass needs all three: LDO IN peak ≤ 5.8 V, inrush ≤ 50 µC (full-bias estimate), and 3V3 still regulating at 500 mA with USB at 4.40 V.
 10. **C12 as an RC snubber** (`tb/10_snubber_hotplug.cir`, `tb/10_snubber_loadstep.cir`). Topology A with no series R in the main path; instead C12 4.7 µF 0402 sits behind Rs (0.5 / 1.0 / 2.2 Ω), optionally with a 100 nF or 1 µF 0402 directly on VSYS. Reports hot-plug peak, inrush, Rs pulse power and energy, and load steps through a 1 µH cable. Pass: VSYS peak ≤ 5.8 V and inrush ≤ 50 µC.
 11. **Hot-plug, current spec.py power path** (`tb/11_hotplug_v13.cir`, `NL_RAIL_V13` in `models/board.lib`). R12 swept over 1.0 (as built) / 1.5 / 2.2 Ω, same 8 corners. Also reports the drop and LDO IN at 250 / 500 mA from 4.40 V and 4.75 V, and R12 power.
+12. **Hot-plug into J1.1, and long USB cables** (`tb/12_j11_hotplug.cir`). R12 is not in the J1.1 path: J1.1 → Q1 → F1 → VSYS. A stiff 5.0 / 5.5 V supply is stepped onto J1.1 through 0.1 µH / 30 mΩ (short stiff link) to 2 µH / 0.1 Ω (long bench leads), with F1 at 0.1 Ω (minimum) and 0.3 Ω (typical), and C12 both bias-dependent and linear 1.3 µF. The same bench steps USB through 1.5 / 2 / 3 µH cables at 5.25 / 5.5 V. U2 is passive (Iq only), so one run is checked against the as-built TLV755 (VIN/EN 6.0 V) and a TLV76733 swap (18 V; the limit is then Q1's ±12 V VGS, and C12/F1 at 16 V).
 
 ## Results (`results/summary.md` is regenerated on every run)
 
@@ -83,6 +85,8 @@ The table below shows the **as-built v1.3 board** (current `tools/spec.py`). `an
 | 1 Hot-plug | As built: 3V3 at 500 mA from USB 4.40 V (above the 250 mA thermal budget) | LDO IN 3.53 V vs 3.538 V needed (max dropout); 3V3 ~3.29 V | **MARGIN** |
 | 1 Hot-plug | v1.3 original (no R12, C12 10u, C5 10u) - why R12 was added: peak +5V vs 6.0 V abs max | 6.13..11.42 V | **FAIL** |
 | 1 Hot-plug | v1.3 original - inrush charge vs USB 50 uC | 63 uC (C12 + 3V3 caps via soft-start) | **FAIL** |
+| 12 J1.1 hot-plug | As built: 5.0 / 5.5 V supply plugged onto J1.1 (leads 0.1-2 uH, F1 0.1 / 0.3 ohm); VSYS <= 6.0 V (TLV755 abs max) | VSYS pk 5.42..9.17 V (linear C12), up to 19.3 V (bias C12); 2 of 20 corners <= 6.0 V | **FAIL** |
+| 12 J1.1 hot-plug | As built: USB hot-plug, 1.5-3 uH cables (2-4 m), 5.25 / 5.5 V; LDO IN <= 6.0 V | <= 2 uH at 5.25 V: 5.92 V; worst (3 uH, 5.5 V): 7.34 V | **MARGIN** |
 | 2 LDO | Start-up: monotonic, overshoot < 3 % | 367 us to 90 %, overshoot 0.02 % | **PASS** |
 | 2 LDO | Load steps 0/50/250 mA, 1 us edges: within 3.3 V +-3 %, settle < 100 us | worst deviation 31 mV, settle 28 us | **PASS** |
 | 2 LDO | Stability: TI condition COUT_eff >= 0.47 uF, nominal 1..200 uF, ceramic ESR (vendor model has no loop, no phase margin) | COUT_eff 3.2 uF; C8 alone 0.60 uF | **PASS** |

@@ -22,7 +22,7 @@ tools/fab.sh         # gerbers, drills, BOM/CPL, PDFs, renders, checks/
 |---|---|
 | `sch.sh` | Runs `gen_sch.py`, ERC (must be 0/0), exports the netlist and checks it against `spec.py` (`check_netlist.py`); refreshes `docs/schematic.pdf` and `docs/images/schematic.png`. |
 | `place.sh` | Runs `build_pcb.py`: footprints, nets and symbol links from the netlist, outline, GND pours, silkscreen (front pin labels, back cheat sheet). Also writes `_work/placed.png`, a placement preview with courtyard-overlap check and ratsnest length (`preview.py`). |
-| `autoroute.sh` | Exports a Specctra DSN, runs Freerouting headless, imports the SES and refills the pours. Existing tracks are kept as fixed. |
+| `autoroute.sh` | Exports a Specctra DSN, runs Freerouting headless, imports the SES and refills the pours. Existing tracks are kept as fixed. With `RIPUP=1`, only locked pre-routes stay fixed, so a second pass may rip up and redo the first pass's tracks. |
 | `stitch.py` | Adds GND stitching vias wherever both pours have room, then drops any via that ends up on isolated copper. |
 | `drc.sh` | `kicad-cli pcb drc` with schematic parity; exits nonzero on any violation. JLCPCB limits come from the board setup plus `nicklink.kicad_dru`. |
 | `route_try.sh` | One placement variant end to end (place, route, stitch, DRC) for the seed search. |
@@ -42,7 +42,7 @@ tools/fab.sh         # gerbers, drills, BOM/CPL, PDFs, renders, checks/
 ## Routing notes
 
 - `placement.py` `PREROUTE` holds locked tracks laid before autorouting (currently the crystal nets), so the critical nets don't depend on Freerouting.
-- Freerouting's result is very sensitive to placement. If a placement change leaves nets unrouted, run a few `tools/route_try.sh s<n> "" <n>` in parallel (at most about 4, since each Freerouting JVM needs a few GB of RAM). Each one nudges small parts by up to ±0.1 mm (`NICKLINK_SEED`), then routes, stitches and runs DRC. Bake the offsets of a clean seed into `PLACE`. The current layout uses seed 12 (reliability pass), finished with `fixroute.sh` for the IMU/C2 3V3 feed and R5's GND via. If a seed leaves one or two items, `fixroute.sh` is usually faster than more seeds. Hand-routed nets live in `PREROUTE`, `PREROUTE_B` and `PREVIAS`: crystal, IMU fan-out and GND returns, the power path, the USB-C orientation ties, and GND vias for boxed-in pads.
+- Freerouting's result is very sensitive to placement. If a placement change leaves nets unrouted, run a few `tools/route_try.sh s<n> "" <n>` in parallel (at most about 4, since each Freerouting JVM needs a few GB of RAM). Each one nudges small parts by up to ±0.1 mm (`NICKLINK_SEED`), then routes, stitches and runs DRC. Bake the offsets of a clean seed into `PLACE`. The current layout uses seed 3 (second review wave), which Freerouting routes fully on its own. If a seed leaves one or two items, `fixroute.sh` is usually faster than more seeds. Hand-routed nets live in `PREROUTE`, `PREROUTE_B` and `PREVIAS`: crystal, IMU fan-out and GND returns, the power path, the USB-C orientation ties, and GND vias for boxed-in pads.
 - `build_all.sh` retries the route, stitch and DRC step (`TRIES`, default 3) because Freerouting's optimizer is time-limited.
 
 ## Typical edits

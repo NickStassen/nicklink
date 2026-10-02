@@ -2,7 +2,7 @@
 
 # JLCPCB 2-layer limits (jlcpcb.com/capabilities/pcb-capabilities, checked 2026-10-01)
 # that KiCad's board-level constraints don't express. The board setup (nicklink.kicad_pro)
-# carries the rest: 0.10 mm min track, 0.13 mm clearance, 0.3 mm edge clearance
+# carries the rest: 0.10 mm min track, 0.127 mm clearance, 0.3 mm edge clearance
 # (Economic PCBA), 0.15 mm silk clearance, 0.10 mm solder-mask web.
 
 (rule "JLC: component PTH annular ring >= 0.18 mm"
@@ -28,7 +28,7 @@
   (condition "A.Layer == B.Layer && (A.Layer == 'F.Silkscreen' || A.Layer == 'B.Silkscreen')"))
 
 # USB4085 0.85 mm pitch with 0.74 mm pads (0.38 mm holes, inside GCT's 0.40 +-0.05 spec) leaves
-# 0.11 mm between its own pads: above JLC's 0.10 mm minimum spacing, below the 0.13 mm default.
+# 0.11 mm between its own pads: above JLC's 0.10 mm minimum spacing, below the 0.127 mm default.
 (rule "USB4085 pad pitch"
   (constraint clearance (min 0.1mm))
   (condition "A.Type == 'Pad' && B.Type == 'Pad' && A.memberOfFootprint('J2') && B.memberOfFootprint('J2')"))

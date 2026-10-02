@@ -30,7 +30,7 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 | Boot | BOOT0 slide switch | **BOOT button** (hold BOOT, tap RESET) |
 | SWD | Split across J1 and J3 | **All on J3**: 3V3, GND, SWDIO, SWCLK, SWO, NRST |
 | HSE crystal | 16 MHz | **8 MHz** (matches Blue Pill / STM32duino / CubeMX defaults) |
-| Regulator | AMS1117-3.3 (SOT-223) + 22 µF tantalum | **TLV75533** (2×2 mm WSON) + ceramics |
+| Regulator | AMS1117-3.3 (SOT-223) + 22 µF tantalum | v1.2: **TLV75533** (2×2 mm WSON) + ceramics; v1.3: **TLV76733**, same package, input rated to 18 V |
 | USB ESD | None | **USBLC6-2P6** on D+/D− and VBUS |
 | I2C pull-ups | 1.5 kΩ fitted on PB6/PB7 | v1.2: removed; **v1.3: 4.7 kΩ** (needed by the on-board IMU) |
 | LEDs | Power | Power + **user LED on PC13** (low = on) |
@@ -40,7 +40,7 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 
 - STM32F103C8T6 (LQFP-48) with an 8 MHz crystal (12 pF load, 15 pF C0G caps): PLL ×9 = 72 MHz, USB clock 72 / 1.5 = 48 MHz.
 - USB-C (GCT USB4085, through-hole) for power and USB full speed; 5.1 kΩ CC pull-downs for either orientation; D+ pull-up from VBUS (2.2 kΩ / 4.7 kΩ divider, 1.5 kΩ to 3.4 V, so it is present only while USB is plugged in); USBLC6-2P6 ESD array.
-- Power path: USB VBUS → R12 1 Ω (hot-plug damping) → 1N5819WS Schottky → **VSYS** → TLV75533 LDO → **3V3** (J3.1, J1.20). VSYS also reaches the **5V pin** (J1.1) through a 0.5 A polyfuse (F1) and a reverse-polarity P-MOSFET (Q1). The Schottky stops a supply on the 5V pin from back-feeding the USB host.
+- Power path: USB VBUS → R12 1 Ω (hot-plug damping) → 1N5819WS Schottky → **VSYS** → TLV76733 LDO → **3V3** (J3.1, J1.20). VSYS also reaches the **5V pin** (J1.1) through a 0.5 A polyfuse (F1) and a reverse-polarity P-MOSFET (Q1). The Schottky stops a supply on the 5V pin from back-feeding the USB host.
 - RESET button (NRST to GND, 100 nF), BOOT button (BOOT0 to 3V3, 10 kΩ pull-down), 10 kΩ pull-down on PB2/BOOT1.
 - Red power LED, green user LED on PC13 (active low).
 - **IMU:** ST LSM6DSV16X 6-axis accelerometer and gyroscope on I2C1 (PB6 SCL / PB7 SDA, address **0x6A**), INT1 to PA0.
@@ -53,7 +53,7 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 
 | Pin | J3 (left) | J1 (right) |
 |---:|---|---|
-| 1 | `3V3` 3V3 regulated output | `5V` 5 V (USB VBUS after Schottky; ≤5.5 V input) |
+| 1 | `3V3` 3V3 regulated output | `5V` 5 V (USB VBUS through Schottky + 0.5 A polyfuse; 4.5–5.5 V input, reverse-polarity protected) |
 | 2 | `GND` | `GND` |
 | 3 | `A9` PA9 / UART1 TX | `B15` PB15 / SPI2 MOSI |
 | 4 | `A10` PA10 / UART1 RX | `B14` PB14 / SPI2 MISO |
@@ -81,7 +81,7 @@ Pins not marked "3.3 V only" are 5 V tolerant (FT) while the board is powered. B
 - **I2C1 / IMU:** I2C1 has on-board 4.7 kΩ pull-ups. External I2C modules can share the bus as long as they avoid address 0x6A and **pull up to 3.3 V only**. A 5 V module needs a level shifter, because the IMU's SCL/SDA limit is 3.6 V. If modules bring their own pull-ups, keep the combined value above about 1.5 kΩ. The 4.7 kΩ pull-ups meet the 400 kHz rise-time limit up to about 75 pF of bus capacitance (roughly 30 cm of wiring plus a few modules); for longer runs, use 100 kHz.
 - **A0 has the IMU's INT1 on it through 10 kΩ.** INT1 drives low whenever no interrupt is asserted, so A0 always sees a 10 kΩ pull-down (also with INT1 set to open-drain, which only releases the pin while active-high). The interrupt is active high, matching WKUP's rising edge. You can still drive A0 from outside, or use it as an ADC input from a low-impedance source. Making A0 truly high-impedance needs INT1 set active-low open-drain (`H_LACTIVE` + `PP_OD`, IF_CFG 03h), which inverts the interrupt and stops it from waking the MCU through WKUP.
 - **J3.6/J3.9/J3.11 (PA15/PB3/PB4) are JTAG pins at reset:** PA15 and PB4 have internal pull-ups and PB3 (JTDO/SWO) has none, until firmware frees them (`__HAL_AFIO_REMAP_SWJ_NOJTAG()` keeps SWD and releases them). PA13/PA14 stay SWD unless you disable SWJ completely, after which the debugger has to connect under reset (NRST is on J3.10).
-- **User LED:** PC13 low turns it on. PC13–PC15 are low-drive pins (sink ≤3 mA, ≤2 MHz) and must not source current.
+- **User LED:** PC13 low turns it on. PC13–PC15 are low-drive pins (≤2 MHz) and must not source current. Their 3 mA sink limit is shared by all three pins (DS5319 Table 5), and the LED already takes about 1.3–1.8 mA of it. J3.17 carries the LED load, so an undriven PC13 floats around 1–1.5 V.
 
 ## IMU
 
@@ -99,10 +99,17 @@ Placement follows ST's LGA guidance: the IMU sits on the top side, with no groun
 
 ## Power
 
-- **5V pin (J1.1), as an output:** VSYS through F1 (0.5 A hold, 1 A trip) and Q1. On USB that is VBUS minus R12's and D2's drop: about 4.7 V at light load, 4.4 V at 250 mA total. A short from J1.1 to the adjacent GND pin trips F1 and the MCU keeps running; F1 resets once the short is removed.
-- **5V pin (J1.1), as an input:** apply 4.5–5.5 V. **Do not exceed 5.5 V**; the regulator's absolute maximum is 6 V. Q1 blocks a reversed supply, and F1 limits the current. D2 keeps J1.1 from back-feeding the USB host. With USB unplugged, the D+ pull-up is unpowered, so the host sees no device until USB is connected.
-- **3V3 pins (J3.1, J1.20):** LDO outputs. Budget about **250 mA total including the MCU** when powered from USB. That figure is an estimate for this two-layer board (with two thermal vias under the LDO), not a measured limit. From a 5.5 V input on J1.1, keep below about 200 mA. **Do not feed 3V3 in from outside**: the TLV755 has no reverse-current protection.
-- **Hot-plug:** USB cables ring when plugged in live. SPICE (`sim/` bench 11) puts the worst-case LDO input peak at 5.38 V with R12 fitted, against 6.1–11.4 V without it. R12 also keeps inrush to 33 µC (USB limit 50 µC). The cost is about 0.25 V less headroom at 250 mA. A long-lead bench supply on J1.1 bypasses R12, so turn the supply on after connecting it.
+- **5V pin (J1.1), as an output:** VSYS through F1 (0.5 A hold, 1 A trip) and Q1. On USB that is VBUS minus the drop across R12, D2, F1 and Q1:
+  - About 4.7 V at light load.
+  - 4.2–4.4 V with 200 mA drawn from J1.1, from a 5.0 V port. From a 4.75 V port it is 4.0–4.1 V, so 5 V modules that need at least 4.5 V may not run.
+  - A short from J1.1 to the adjacent GND pin trips F1 in about 0.1 s. VSYS collapses meanwhile, so the MCU resets once; the board recovers when the short is removed.
+  - F1's hold current falls to about 0.33 A at 60 °C.
+- **5V pin (J1.1), as an input:** apply 4.5–5.5 V and **do not exceed 5.5 V** in steady state. The parts behind it are rated higher (regulator 18 V, C12 and F1 16 V, Q1 gate ±12 V), so plug-in overshoot is survivable with normal leads. Q1 blocks a reversed supply, and F1 limits the current. D2 keeps J1.1 from back-feeding the USB host. With USB unplugged, the D+ pull-up is unpowered, so the host sees no device until USB is connected. Don't connect a battery to J1.1 while USB is plugged in: USB would charge it through F1 and Q1.
+- **3V3 pins (J3.1, J1.20):** LDO outputs. Budget about **250 mA total including the MCU** when powered from USB. That figure is an estimate for this two-layer board (with two thermal vias under the LDO), not a measured limit. From a 5.5 V input on J1.1, keep below about 200 mA. **Do not feed 3V3 in from outside**: the regulator isn't specified for reverse current.
+- **Hot-plug:** cables ring when plugged into a live supply. SPICE (`sim/` benches 11 and 12):
+  - **USB:** with R12 fitted, the worst-case regulator input peak is 5.38 V for cables up to 1 µH (6.1–11.4 V without R12), and 7.3 V for an unusually long 3 µH cable. Inrush is 33 µC (USB limit 50 µC). R12 costs about 0.25 V of headroom at 250 mA.
+  - **J1.1:** this path has no R12, so plugging a live supply onto J1.1 rings VSYS to about 5.4–9 V. That is why the regulator is the 18 V TLV76733.
+  - **Bench leads over about 1 µH:** with these on J1.1, connect first and then switch the supply on. The most pessimistic capacitor model puts the ring past Q1's 12 V gate rating.
 
 ## Mounting
 
@@ -139,23 +146,23 @@ The board is checked against JLCPCB's published 2-layer and assembly limits ([PC
 
 | JLC limit | NickLink |
 |---|---|
-| Trace / space ≥ 0.10 / 0.10 mm | ≥ 0.112 mm tracks (0.15 mm default), 0.13 mm clearance |
+| Trace / space ≥ 0.10 / 0.10 mm | ≥ 0.10 mm tracks (0.127 mm signals, 0.2 mm GND and 3V3, 0.3 mm VBUS/5 V), 0.127 mm clearance |
 | Via ≥ 0.15 mm drill / 0.25 mm diameter | 0.3 / 0.6 mm |
 | Component PTH annular ring ≥ 0.18 mm | ≥ 0.18 mm. The USB4085 pads change from GCT's 0.40/0.65 mm (0.125 mm ring) to a 0.38 mm hole in a 0.74 mm pad, which stays within GCT's 0.40 ± 0.05 mm hole spec for the 0.22 × 0.15 mm pins. The pad gap is 0.11 mm, above JLC's 0.10 mm. The LDO's two thermal vias are 0.3 mm in 0.66 mm pads. |
 | Pad hole-to-hole ≥ 0.45 mm; plated slot ≥ 0.5 mm | ≥ 0.47 mm (USB4085 0.85 mm pitch, 0.38 mm holes); 0.6 mm shield slots |
 | SMD pad to pad ≥ 0.15 mm | ≥ 0.15 mm (the IMU's LGA is the tightest) |
 | Copper to routed edge ≥ 0.2 mm (≥ 0.3 mm for Economic assembly) | 0.3 mm |
 | Solder-mask web ≥ 0.10 mm | 0.10 mm minimum checked |
-| Silkscreen line ≥ 0.15 mm, text ≥ 1.0 mm, silk to pad ≥ 0.15 mm | All silk ≥ 0.15 mm wide; labels 1.0 mm tall; 0.15 mm to pads and to the edge |
+| Silkscreen line ≥ 0.15 mm, text ≥ 1.0 mm, silk to pad ≥ 0.15 mm | All silk ≥ 0.15 mm wide; labels 1.0 mm tall; labels 0.15 mm from pads and the edge. The library 0402 footprints' own silk sits about 0.09 mm from their pads; JLC clips it. |
 | Component bodies ≥ 0.3 mm apart, IPC-7351B medium density | KiCad library courtyards (IPC nominal), none overlapping |
 | Economic assembly: components ≥ 0.3 mm from edge, pitch ≥ 0.4 mm, passives ≥ 0201 | SMD bodies ≥ 1 mm from the edge; finest pitch 0.5 mm; 0402 passives |
 
 **Ordering:**
 - Under 70 × 70 mm, so order **Economic PCBA**. Economic needs no on-board fiducials or rails. JLC can add edge rails and fiducials if you choose Standard or panelize; on-board fiducials would need 3.85 mm from the edge.
 - Choose an **ENIG** finish: the 0.5 mm-pitch LGA and LQFP solder more reliably on a flat pad than on HASL.
-- The CPL rotations are corrected for JLC's footprints (`JLC_ROT` in `tools/fab.sh`: LQFP-48 −90°, SOT-666 and LGA-14 +180°). Still check the pin-1 marks in JLC's placement preview.
+- The CPL rotations are corrected for JLC's footprints (`JLC_ROT` in `tools/fab.sh`: LQFP-48 −90°; SOT-666, LGA-14 and SOT-323 +180°). Still check the pin-1 marks in JLC's placement preview.
 - The through-hole parts (USB-C, headers) are hand-soldered. The USB-C GND pins use thermal reliefs to make that easier.
-- Signal tracks pass under the M2 screw heads (under solder mask, vias tented). Use plastic standoffs or washers if you clamp with metal hardware.
+- Signal tracks, and VBUS_D (USB power) under H1, pass under the M2 screw heads (under solder mask, vias tented). Use plastic standoffs or washers if you clamp with metal hardware.
 
 ## Validation and fabrication
 
@@ -175,6 +182,11 @@ Bring-up:
 **Interface limits:**
 
 - USB and CAN cannot run at the same time on the F103 (they share packet RAM).
+- **I2C1 is always in use by the IMU (PB6/PB7).**
+  - Remapping SPI1 to PA15/PB3/PB4/PB5 while I2C1 is clocked breaks MOSI on PB5 (erratum ES096). Gate the I2C1 clock off while SPI1 is remapped.
+  - Using PB6/PB7 for USART1-remap or TIM4 disturbs the IMU's bus.
+  - Remapping I2C1 to PB8/PB9 disconnects the IMU and takes the CAN pins.
+- **Never set the IMU's `IF_CFG.I2C_I3C_disable` bit.** With CS tied high and no power switch on the IMU, only a full power cycle recovers it.
 - CAN uses PB8/PB9 through the remap and needs an external transceiver.
 - USB impedance and compliance are not qualified.
 
@@ -192,7 +204,7 @@ Bring-up:
 - [ST STM32F103x8/xB datasheet](https://www.st.com/resource/en/datasheet/stm32f103c8.pdf)
 - [ST AN2586 — hardware design](https://www.st.com/resource/en/application_note/an2586-getting-started-with-stm32f10xxx-hardware-development-stmicroelectronics.pdf)
 - [ST AN2867 — oscillator design](https://www.st.com/resource/en/application_note/an2867-guidelines-for-oscillator-design-on-stm8afals-and-stm32-mcusmpus-stmicroelectronics.pdf)
-- [TI TLV755P datasheet](https://www.ti.com/lit/ds/symlink/tlv755p.pdf)
+- [TI TLV767 datasheet](https://www.ti.com/lit/ds/symlink/tlv767.pdf) (U2 from v1.3); [TLV755P](https://www.ti.com/lit/ds/symlink/tlv755p.pdf) (v1.2)
 - [ST LSM6DSV16X datasheet](https://www.st.com/resource/en/datasheet/lsm6dsv16x.pdf)
 - [ST USBLC6-2 datasheet](https://www.st.com/resource/en/datasheet/usblc6-2.pdf)
 

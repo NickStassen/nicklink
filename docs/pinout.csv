@@ -19,7 +19,7 @@ J3,17,PC13,C13,PC13 / user LED (active low),3.3 V only
 J3,18,PC14,C14,PC14,3.3 V only
 J3,19,PC15,C15,PC15,3.3 V only
 J3,20,GND,GND,GND,
-J1,1,+5V,5V,5V (USB VBUS after Schottky; <=5.5 V input),
+J1,1,+5V,5V,"5V (USB VBUS via Schottky + 0.5 A PTC; 4.5-5.5 V input, reverse-polarity protected)",
 J1,2,GND,GND,GND,
 J1,3,PB15,B15,PB15 / SPI2 MOSI,FT
 J1,4,PB14,B14,PB14 / SPI2 MISO,FT

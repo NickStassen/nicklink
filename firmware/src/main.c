@@ -19,10 +19,11 @@ static volatile int led_auto = 1;
 static volatile uint8_t rxbuf[64];
 static volatile uint8_t rx_head, rx_tail;
 static volatile int int1_pending;
-static uint32_t sysclk = 8000000;
-static const char *clock_msg = "HSI 8 MHz";
+static volatile uint32_t sysclk = 8000000;
+static const char *volatile clock_msg = "HSI 8 MHz";
 static uint32_t reset_csr;
 static int imu_ok;
+static int standby_wake;
 
 /* ---- basics ----------------------------------------------------------- */
 void SysTick_Handler(void) {
@@ -40,22 +41,50 @@ static void pin_mode(int port, int pin, int mode) {
 static void pin_set(int port, int pin, int v) { if (v) GPIO_BSRR(port) = 1u << pin; else GPIO_BRR(port) = 1u << pin; }
 static int pin_get(int port, int pin) { return (GPIO_IDR(port) >> pin) & 1; }
 
+/* bounded wait: true if cond came true within ~100 ms of HSI-speed loops */
+#define WAIT(cond) ({ uint32_t n_ = 200000; while (!(cond) && --n_) {} n_ != 0; })
+#define CR_HSION (1u << 0)
+#define CR_HSIRDY (1u << 1)
+#define CR_HSEON (1u << 16)
+#define CR_HSERDY (1u << 17)
+#define CR_CSSON (1u << 19)
+#define CR_PLLON (1u << 24)
+#define CR_PLLRDY (1u << 25)
+#define SWS() ((RCC_CFGR >> 2) & 3)
+
+/* Clock security system: if the crystal dies, hardware switches SYSCLK to HSI and raises NMI.
+ * Keep running on HSI 8 MHz and record it; `info` reports it. */
+void NMI_Handler(void) {
+    if (!(RCC_CIR & (1u << 7))) return;                         /* CSSF */
+    RCC_CIR |= 1u << 23;                                        /* CSSC: clear it, or NMI fires forever */
+    sysclk = 8000000;
+    SYST_RVR = sysclk / 1000 - 1; SYST_CVR = 0;
+    USART1_BRR = (sysclk + 57600) / 115200;
+    clock_msg = "HSE FAILED at runtime (CSS) -> running on HSI 8 MHz";
+}
+
 static void clock_init(void) {
-    RCC_CR |= 1u << 16;                                         /* HSEON */
-    for (uint32_t i = 0; i < 200000 && !(RCC_CR & (1u << 17)); i++) {}  /* ~100 ms on HSI */
-    int hse = RCC_CR & (1u << 17);
+    /* don't assume a fresh reset (bootloader GO, soft reset): HSI as SYSCLK, PLL/CSS/HSE off */
+    RCC_CR |= CR_HSION;
+    WAIT(RCC_CR & CR_HSIRDY);
+    RCC_CFGR &= ~3u;
+    WAIT(SWS() == 0);
+    RCC_CR &= ~(CR_CSSON | CR_PLLON);
+    RCC_CIR |= 1u << 23;
+    WAIT(!(RCC_CR & CR_PLLRDY));
+    RCC_CR &= ~CR_HSEON;
+    RCC_CR |= CR_HSEON;
+    int hse = WAIT(RCC_CR & CR_HSERDY);                         /* ~100 ms on HSI */
     FLASH_ACR = 0x12;                                           /* prefetch, 2 wait states */
-    if (hse) RCC_CFGR = (7u << 18) | (1u << 16) | (4u << 8);    /* PLL = HSE x9 = 72 MHz, APB1 /2, USB /1.5 */
-    else { RCC_CR &= ~(1u << 16); RCC_CFGR = (14u << 18) | (4u << 8); }  /* PLL = HSI/2 x16 = 64 MHz */
-    RCC_CR |= 1u << 24;                                         /* PLLON */
-    uint32_t i = 0;
-    while (!(RCC_CR & (1u << 25)) && ++i < 200000) {}
-    if (!(RCC_CR & (1u << 25))) { clock_msg = "PLL did not lock, staying on HSI 8 MHz"; return; }
+    /* APB1 /2, ADC /6 (12 MHz, max 14), USBPRE=0 (/1.5) */
+    if (hse) { RCC_CR |= CR_CSSON; RCC_CFGR = (7u << 18) | (1u << 16) | (4u << 8) | (2u << 14); }  /* PLL = HSE x9 = 72 MHz */
+    else { RCC_CR &= ~CR_HSEON; RCC_CFGR = (14u << 18) | (4u << 8) | (2u << 14); }  /* PLL = HSI/2 x16 = 64 MHz */
+    RCC_CR |= CR_PLLON;
+    if (!WAIT(RCC_CR & CR_PLLRDY)) { clock_msg = "PLL did not lock, staying on HSI 8 MHz"; return; }
     RCC_CFGR |= 2;                                              /* SW = PLL */
-    for (i = 0; ((RCC_CFGR >> 2) & 3) != 2 && i < 200000; i++) {}
-    if (((RCC_CFGR >> 2) & 3) != 2) { clock_msg = "switch to PLL failed (SWS), staying on HSI 8 MHz"; return; }
+    if (!WAIT(SWS() == 2)) { clock_msg = "switch to PLL failed (SWS), staying on HSI 8 MHz"; return; }
     sysclk = hse ? 72000000 : 64000000;
-    clock_msg = hse ? "HSE 8 MHz -> PLL x9 = 72 MHz (APB1 36 MHz, USB 48 MHz)"
+    clock_msg = hse ? "HSE 8 MHz -> PLL x9 = 72 MHz (APB1 36 MHz, ADC 12 MHz, USB 48 MHz), CSS on"
                     : "HSE FAILED to start -> HSI/2 x16 = 64 MHz (USB unusable)";
 }
 
@@ -231,6 +260,8 @@ static void imu_event(void) {
 static void print_info(void) {
     printf("\nNickLink v" BOARD_REV " board test, SYSCLK %lu Hz\n", (unsigned long)sysclk);
     printf("clock: %s\n", clock_msg);
+    printf("RCC_CFGR 0x%08lX, PVD 2.9 V: VDD %s, %s\n", (unsigned long)RCC_CFGR,
+           PWR_CSR & (1u << 2) ? "BELOW threshold" : "ok", standby_wake ? "woke from Standby" : "not from Standby");
     uint32_t c = reset_csr;
     printf("reset cause:%s%s%s%s%s%s (RCC_CSR 0x%08lX)\n",
            c & (1u << 27) ? " power-on" : "", c & (1u << 28) ? " software" : "",
@@ -329,15 +360,66 @@ static void cmd_mon(void) {
     pins_release();
 }
 
+/* ---- Standby / ADC ---------------------------------------------------- */
+/* Standby, wake on a rising edge at PA0/WKUP (A0). The IMU INT1 (push-pull, idles low) drives A0
+ * through 10k, so a tap/wake event wakes the MCU. Wake = reset; the banner reports it. */
+static void cmd_standby(void) {
+    (void)imu_rd(0x1D);                                         /* ALL_INT_SRC: release latched INT1 so it is low */
+    pin_mode(PA, 0, IN_FLOAT);                                  /* A0 already has 10k to INT1; no internal pull */
+    if (pin_get(PA, 0)) printf("warning: PA0 is high, a rising edge is needed to wake\n");
+    printf("entering Standby; rising edge on PA0 (or RESET) wakes\n");
+    while (!(USART1_SR & (1u << 6))) {}                         /* TC: let the text out */
+    SYST_CSR = 0; USART1_CR1 &= ~(1u << 5); EXTI_IMR &= ~1u;    /* no pending interrupt may cancel WFI */
+    PWR_CR |= (1u << 2) | (1u << 1);                            /* CWUF, PDDS */
+    PWR_CSR |= 1u << 8;                                         /* EWUP */
+    SCB_SCR |= 1u << 2;                                         /* SLEEPDEEP */
+    __asm volatile("wfi");
+    SCB_AIRCR = 0x05FA0004;                                     /* WFI fell through (debugger?): reset */
+}
+
+/* ADC1 single conversions: PA0-PA7 = ch0-7, PB0/PB1 = ch8/9, VREFINT = ch17. ADC clock 12 MHz,
+ * 239.5-cycle sample (~21 us, covers VREFINT's 17.1 us minimum). Pins are analog only while it runs. */
+static int adc_read(int ch) {
+    ADC1_SQR3 = (uint32_t)ch;
+    ADC1_CR2 |= 1u << 22;                                       /* SWSTART */
+    uint32_t t0 = ticks;
+    while (!(ADC1_SR & 2)) if (ticks - t0 > 5) return -1;       /* EOC */
+    return ADC1_DR & 0xFFF;                                     /* DR read clears EOC */
+}
+static void cmd_adc(void) {
+    uint32_t cra = GPIO_CRL(PA), crb = GPIO_CRL(PB);
+    RCC_APB2ENR |= 1u << 9;                                     /* ADC1EN */
+    ADC1_SMPR1 = 0x00FFFFFF; ADC1_SMPR2 = 0x3FFFFFFF; ADC1_SQR1 = 0;
+    ADC1_CR2 = 1u;                                              /* ADON */
+    delay_ms(1);
+    ADC1_CR2 = 1u | (7u << 17) | (1u << 20) | (1u << 23);       /* EXTSEL=SWSTART, EXTTRIG, TSVREFE */
+    ADC1_CR2 |= 1u << 3; for (uint32_t t0 = ticks; (ADC1_CR2 & (1u << 3)) && ticks - t0 < 5;) {}   /* RSTCAL */
+    ADC1_CR2 |= 1u << 2; for (uint32_t t0 = ticks; (ADC1_CR2 & (1u << 2)) && ticks - t0 < 5;) {}   /* CAL */
+    delay_ms(1);                                                /* VREFINT start-up */
+    GPIO_CRL(PA) = 0;                                           /* PA0-7 analog */
+    GPIO_CRL(PB) = (crb & ~0xFFu);                              /* PB0/PB1 analog */
+    int vref = adc_read(17);
+    uint32_t vdda = vref > 0 ? 1200u * 4095u / (uint32_t)vref : 0;  /* VREFINT 1.20 V typ (1.16-1.24) */
+    printf("VREFINT raw %d -> VDDA ~%lu mV\n", vref, (unsigned long)vdda);
+    for (int ch = 0; ch < 10; ch++) {
+        int v = adc_read(ch);
+        if (v < 0) printf("%s%d ch%d: timeout\n", ch < 8 ? "PA" : "PB", ch < 8 ? ch : ch - 8, ch);
+        else printf("%s%d ch%d: raw %4d = %4lu mV\n", ch < 8 ? "PA" : "PB", ch < 8 ? ch : ch - 8, ch,
+                    v, (unsigned long)v * vdda / 4095);
+    }
+    GPIO_CRL(PA) = cra; GPIO_CRL(PB) = crb;
+    ADC1_CR2 = 0; RCC_APB2ENR &= ~(1u << 9);
+}
+
 /* ---- command line ----------------------------------------------------- */
 static void run(char *line) {
     char *cmd = strtok(line, " "), *arg = strtok(NULL, " ");
     if (!cmd) return;
     if (!strcmp(cmd, "help"))
-        printf("info | pins | walk [ms] [all] | mon | imu | i2cscan | mco [hse|pll|hsi|off] | reset\n"
+        printf("info | pins | walk [ms] [all] | mon | imu | i2cscan | mco [hse|pll|hsi|off] | adc | standby | reset\n"
                "  walk: drive each header GPIO high then low, check readback + shorts (all = include SWD)\n"
                "  mon:  print header input changes (jumper a pin to 3V3 to test it)\n");
-    else if (!strcmp(cmd, "info")) print_info();
+    else if (!strcmp(cmd, "info") || !strcmp(cmd, "clock")) print_info();
     else if (!strcmp(cmd, "pins")) print_pins();
     else if (!strcmp(cmd, "walk")) {
         int all = arg && !strcmp(arg, "all");
@@ -358,6 +440,8 @@ static void run(char *line) {
         pin_mode(PA, 8, src ? AF_PP : IN_FLOAT);
         printf("MCO on PA8 (J3.5): %s\n", src == 6 ? "HSE, expect 8.000 MHz" : src == 7 ? "PLL/2, expect 36.000 MHz" : src == 5 ? "HSI 8 MHz" : "off");
     }
+    else if (!strcmp(cmd, "adc")) cmd_adc();
+    else if (!strcmp(cmd, "standby")) cmd_standby();
     else if (!strcmp(cmd, "reset")) { printf("resetting\n"); delay_ms(5); SCB_AIRCR = 0x05FA0004; }
     else printf("? %s (try help)\n", cmd);
 }
@@ -368,6 +452,9 @@ static void usb_detach(void) { pin_set(PA, 12, 0); pin_mode(PA, 12, OUT_OD); }
 
 int main(void) {
     reset_csr = RCC_CSR;
+    RCC_APB1ENR |= 1u << 28;                                    /* PWR clock */
+    standby_wake = PWR_CSR & (1u << 1);                         /* SBF */
+    PWR_CR |= (1u << 3) | (7u << 5) | (1u << 4);                /* CSBF, PLS=111 (2.9 V), PVDE; polled, no EXTI16 */
     RCC_CSR |= 1u << 24;                                        /* RMVF: clear reset flags for next time */
     clock_init();
     RCC_APB2ENR |= (1u << 0) | (1u << 2) | (1u << 3) | (1u << 4) | (1u << 14);  /* AFIO, GPIOA/B/C, USART1 */

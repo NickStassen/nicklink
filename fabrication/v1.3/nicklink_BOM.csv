@@ -13,7 +13,8 @@ Comment,Designator,Footprint,LCSC Part #,Notes,Assemble
 330,R6,R_0402_1005Metric,C25104,~1.2-1.8 mA (PC13 sinks <= 3 mA),SMD yes
 4k7,"R7,R9",R_0402_1005Metric,C25900,R7: I2C1 SCL pull-up; R9: I2C1 SDA pull-up,SMD yes
 4k7,R11,R_0402_1005Metric_NoSilk,C25900,D+ pull-up divider; VBUS bleed,SMD yes
-4u7,"C4,C12",C_0402_1005Metric,C23733,C4: VDD3 (pin 48) bulk: DS5319 Fig. 14 requires 4.7 uF on VDD3; C12: LDO input (10 V X5R; USB allows <= 10 uF),SMD yes
+4u7,C4,C_0402_1005Metric,C23733,VDD3 (pin 48) bulk: DS5319 Fig. 14 requires 4.7 uF on VDD3,SMD yes
+4u7 16V,C12,C_0402_1005Metric,C318563,"Samsung CL05A475MO5NUNC; LDO input, 16 V X5R (J1.1 hot-plug ring); USB allows <= 10 uF",SMD yes
 5k1,R4,R_0402_1005Metric,C25905,,SMD yes
 5k1,R5,R_0402_1005Metric_NoSilk,C25905,,SMD yes
 8MHz,Y1,Crystal_SMD_3225-4Pin_3.2x2.5mm,C2682775,YXC X32258MOB4SI (CL 12 pF),SMD yes
@@ -25,6 +26,6 @@ LSM6DSV16X,U4,LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y_NoSilk,C5267406,ST LSM6DSV1
 RED,D1,LED_0402_1005Metric,C264407,Everlight 16-213/R6C-AQ2R2B/3T; Power,SMD yes
 RESET,SW1,SW_SPST_B3U-1000P_NoSilk,C231329,,SMD yes
 STM32F103C8T6,U1,LQFP-48_7x7mm_P0.5mm,C8734,,SMD yes
-TLV75533PDRV,U2,WSON-6-1EP_2x2mm_P0.65mm_EP1x1.6mm_ThermalVias03,C2861750,,SMD yes
+TLV76733DRVR,U2,WSON-6-1EP_2x2mm_P0.65mm_EP1x1.6mm_ThermalVias03,C2848334,TI TLV76733DRVR,SMD yes
 USBLC6-2P6,U3,SOT-666,C15999,,SMD yes
 USB_C_Receptacle_USB2.0_16P,J2,USB_C_Receptacle_GCT_USB4085_EdgeSilk,C7095263,GCT USB4085-GF-A; hand-solder THT,THT hand

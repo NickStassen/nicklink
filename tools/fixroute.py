@@ -85,12 +85,17 @@ def dump(board, net, pad_a, pad_b, width, out):
         for it in items:
             if it.IsOnLayer(l) and it.GetNetname() != net:
                 obst[n] += shape(it, l, inflate)
+            if it.IsOnLayer(l) and it.GetNetname() != net:
                 vobst[n] += shape(it, l, CLR + VIA_D / 2)
+            elif it.IsOnLayer(l) and it.Type() == pcbnew.PCB_PAD_T and not it.HasHole():
+                vobst[n] += shape(it, l, 0.1 + VIA_D / 2)   # own SMD pad: no via-in-pad, keep a 0.1 mm mask web
         for z in b.Zones():
             if z.GetIsRuleArea() and z.GetDoNotAllowTracks() and z.IsOnLayer(l):
                 obst[n] += outlines(z.Outline()); vobst[n] += outlines(z.Outline())
-    holes = []                           # every drill, for hole-to-hole spacing of new vias
+    holes, screws = [], []               # every drill (hole-to-hole spacing); mounting holes (screw heads)
     for p in pads.values():
+        if p.HasHole() and not p.GetNetname() and min(p.GetDrillSize().x, p.GetDrillSize().y) >= mm(2.0):
+            screws.append((pcbnew.ToMM(p.GetPosition().x), pcbnew.ToMM(p.GetPosition().y)))
         if p.HasHole():
             d = max(p.GetDrillSize().x, p.GetDrillSize().y)
             holes.append((pcbnew.ToMM(p.GetPosition().x), pcbnew.ToMM(p.GetPosition().y), pcbnew.ToMM(d) / 2))
@@ -100,7 +105,7 @@ def dump(board, net, pad_a, pad_b, width, out):
     bb = b.GetBoardEdgesBoundingBox()
     edge = [pcbnew.ToMM(v) for v in (bb.GetLeft(), bb.GetTop(), bb.GetRight(), bb.GetBottom())]
     json.dump({"obst": obst, "vobst": vobst, "holes": holes, "A": members(ca), "B": members(cb),
-               "edge": edge, "width": width}, open(out, "w"))
+               "screws": screws, "edge": edge, "width": width}, open(out, "w"))
 
 
 def search(dumpf, pathf):
@@ -127,6 +132,11 @@ def search(dumpf, pathf):
         return (X > x0 + m) & (X < x1 - m) & (Y > y0 + m) & (Y < y1 - m)
     blocked = {n: mask(d["obst"][n]) | ~inside(e) for n in "FB"}
     vblock = mask(d["vobst"]["F"]) | mask(d["vobst"]["B"]) | ~inside(ev)
+    for sx, sy in d["screws"]:            # 3.5 mm button heads / standoffs: keep copper out (r 2.0 mm)
+        ring = np.hypot(X - sx, Y - sy) < 2.0 + d["width"] / 2
+        for n in "FB":
+            blocked[n] |= ring
+        vblock |= np.hypot(X - sx, Y - sy) < 2.0 + VIA_D / 2
     for hx, hy, hr in d["holes"]:
         for n in "FB":                   # track copper to any hole edge: 0.25 mm
             blocked[n] |= np.hypot(X - hx, Y - hy) < hr + d["width"] / 2 + 0.3
@@ -179,14 +189,22 @@ def search(dumpf, pathf):
         else:
             cur.append(c)
     segs.append(cur)
+    def clear(l, a, c):                  # straight line a -> c (cells) free on layer l?
+        n = "FB"[l]
+        k = int(max(abs(c[1] - a[1]), abs(c[2] - a[2])) * 2) + 1
+        for i in range(k + 1):
+            y, x = round(a[1] + (c[1] - a[1]) * i / k), round(a[2] + (c[2] - a[2]) * i / k)
+            if blocked[n][y, x] and not (tA[n][y, x] or tB[n][y, x]):
+                return False
+        return True
     out = []
-    for s in segs:
-        pts = [s[0]]
-        for a, c in zip(s[1:], s[2:]):
-            d1 = (a[1] - pts[-1][1], a[2] - pts[-1][2]); d2 = (c[1] - a[1], c[2] - a[2])
-            if d1[0] * d2[1] != d1[1] * d2[0]:   # direction changes at a
-                pts.append(a)
-        pts.append(s[-1])
+    for s in segs:                       # line-of-sight smoothing: fewest straight runs
+        pts, i = [s[0]], 0
+        while i < len(s) - 1:
+            j = len(s) - 1
+            while j > i + 1 and not clear(s[0][0], s[i], s[j]):
+                j -= 1
+            pts.append(s[j]); i = j
         if len(pts) > 1:
             out.append({"layer": "FB"[s[0][0]], "pts": [(x0 + p[2] * STEP, y0 + p[1] * STEP) for p in pts]})
     json.dump({"segs": out, "vias": vias}, open(pathf, "w"))

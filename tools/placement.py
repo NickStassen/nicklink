@@ -98,11 +98,10 @@ PLACE.update({
     "R2": (dx(13.242), 9.65, 0),  # 0.017 mm up (was 9.667) so R11 fits under it
 })
 
-# Seed 12 of the reliability-pass layout (2026-10-02), baked in (the board was then finished with
-# tools/fixroute.sh: IMU/C2 3V3 feed and R5's GND via).
+# Seed 3 of the second-review-wave layout (2026-10-02), baked in; Freerouting alone routes it fully.
 PLACE.update({
-    "R5": (dx(13.38), 8.653, 0), "C3": (dx(11.675), 11.403, 90),
-    "R7": (dx(8.578), 19.044, 0), "R9": (dx(8.725), 20.203, 0),
+    "R5": (dx(13.328), 8.662, 0), "C3": (dx(11.649), 11.424, 90),
+    "R7": (dx(8.603), 18.957, 0), "R9": (dx(8.628), 20.27, 0),
 })
 
 # Freerouting is deterministic but placement-sensitive. NICKLINK_SEED=<n> nudges a few
@@ -146,7 +145,7 @@ LABELS = [
 # IMU keep-out (inside its pad ring) and pin-1 dot, following its final position/rotation
 _ux, _uy, _ur = PLACE["U4"]
 _kx, _ky = (0.8, 0.55) if _ur % 180 == 0 else (0.55, 0.8)
-_bx, _by = (1.5, 1.25) if _ur % 180 == 0 else (1.25, 1.5)
+_bx, _by = (1.75, 1.5) if _ur % 180 == 0 else (1.5, 1.75)   # pour stays >= 0.25 mm off the GND pads
 KEEPOUTS = [(0, (_ux - _kx, _uy - _ky, _ux + _kx, _uy + _ky), "all"),
             (0, (_ux - _bx, _uy - _by, _ux + _bx, _uy + _by), "pour")]
 _p1 = {0: (-1.75, -0.6), 90: (-1.35, 1.45), 180: (1.45, 1.35), 270: (1.35, -1.45)}[_ur % 360]  # pad 1 corner
@@ -162,8 +161,8 @@ SILK_DOTS.append((_ux + _p1[0], _uy + _p1[1], 0.15))
 # Pad centres relative to U4 at 0 deg: 1-4 left (-1.163, -0.75..0.75), 5-7 bottom (-0.5..0.5, 0.912),
 # 8-11 right (1.163, 0.75..-0.75), 12-14 top (0.5..-0.5, -0.912).
 _p = lambda x, y: (round(_ux + x, 3), round(_uy + y, 3))
-_rail = round(_uy + 2.22, 3)                       # 3V3 rail y
-_gvia = _p(0.25, 1.54)                             # GND via under pads 6/7
+_rail = round(_uy + 2.29, 3)                       # 3V3 rail y (inside the FB1/C14/C15 pads, clear of _gvia)
+_gvia = _p(0.25, 1.69)                             # GND via below pads 6/7, outside the package body
 _fbx, _c14x, _c15x = PLACE["FB1"][0], PLACE["C14"][0], PLACE["C15"][0]
 _r10x, _r10y = PLACE["R10"][0], PLACE["R10"][1]
 PREROUTE += [
@@ -198,7 +197,9 @@ PREROUTE += [
     # body at y = 4.0 (between the shield slots) to D2's anode.
     ("VBUS", 0.3, [_r(_jx - 5.1, _jy), _r(_jx - 5.1, 7.4), _r(_r12x + 1.15, 7.4), _r(_r12x + 0.9125, _r12y)]),
     ("VBUS", 0.2, [_r(PLACE["R2"][0] - 1.062, 7.4), _r(PLACE["R2"][0] - 1.062, PLACE["R2"][1]), _r(PLACE["R2"][0] - 0.51, PLACE["R2"][1])]),  # -> R2.1 (D+ pull-up), between D1/D3 and R5
-    ("/VBUS_D", 0.25, [_r(_r12x - 0.9125, _r12y), _r(L + 0.12, _r12y), _r(L + 0.12, 3.65), _r(_d2x, 3.65), _d2a]),
+    # ...hopping to B.Cu under the USB shell: its GND standoff dimples sit on F.Cu there (keep-out below)
+    ("/VBUS_D", 0.25, [_r(_r12x - 0.9125, _r12y), _r(L + 0.12, _r12y), _r(L + 0.12, 3.65), _r(c - 3.6, 3.65)]),
+    ("/VBUS_D", 0.25, [_r(c + 3.6, 3.65), _r(_d2x, 3.65), _d2a]),
     ("/VSYS", 0.3, [_d2k, _r(_d2x, _d2k[1] + 0.448), _r(_f11[0], _d2k[1] + 0.81), _f11]),     # D2.K -> F1.1
     ("/VSYS", 0.3, [_r(_d2x, _d2k[1] + 0.448), _r(_trunk, _d2k[1] + 0.963), _r(_trunk, _u2y + 0.65), _r(_u2x + 0.888, _u2y + 0.65)]),  # -> U2 EN (4)
     ("/VSYS", 0.3, [_r(_trunk, _u2y - 0.65), _r(_u2x + 0.888, _u2y - 0.65)]),                  # -> U2 IN (6)
@@ -208,7 +209,14 @@ PREROUTE += [
     ("GND", 0.25, [_qg, _gq]),                                                                 # Q1 gate -> GND via
     ("GND", 0.25, [_r(_c12x + 0.48, _c12y), _gc]), ("GND", 0.25, [_r(_r8x + 0.51, _r8y), _gc]),
 ]
-PREVIAS += [("GND", _gq), ("GND", _gc)]
+# U2 = TLV76733: SNS (2) to OUT (1) on the pad column, pin 5 (GND) into the exposed pad
+PREROUTE += [("+3.3V", 0.2, [_r(_u2x - 0.888, _u2y), _r(_u2x - 0.888, _u2y - 0.65)]),
+             ("GND", 0.25, [_r(_u2x + 0.888, _u2y), _r(_u2x + 0.3, _u2y)])]
+PREVIAS += [("GND", _gq), ("GND", _gc), ("/VBUS_D", _r(c - 3.6, 3.65)), ("/VBUS_D", _r(c + 3.6, 3.65))]
+PREROUTE_B += [("/VBUS_D", 0.25, [_r(c - 3.6, 3.65), _r(c + 3.6, 3.65)])]
+# USB4085 shell: two round standoffs + a centre bar on its (GND) underside, GCT drawing sheet 1
+# (footprint u 0.3-5.65, v 2.35-3.35 from A1): no F.Cu tracks/vias under them.
+KEEPOUTS.append((0, (_jx - 5.65, _jy - 3.35, _jx - 0.3, _jy - 2.35), "all"))
 
 # Item 2: USBLC6 (U3) GND pin 2 gets a via; VBUS pin 5 -> C13.1 (top) -> J2.A4 locked; C13 GND -> C8 GND.
 _u3x, _u3y, _ = PLACE["U3"]; _c13x, _c13y, _ = PLACE["C13"]; _c8x, _c8y, _ = PLACE["C8"]
