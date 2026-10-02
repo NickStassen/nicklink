@@ -1,0 +1,4 @@
+set ngbehavior=psa
+set wr_singlescale
+set wr_vecnames
+option numdgt=7

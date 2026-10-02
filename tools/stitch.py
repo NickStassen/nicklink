@@ -73,13 +73,38 @@ for z, m in modes:
 removed = 0
 while True:
     pcbnew.ZONE_FILLER(b).Fill(b.Zones())
-    b.BuildConnectivity()
-    # a stitching via must sit inside the (island-removed) fill on both layers
+    # A stitching via is kept only if it joins fill islands anchored to real GND copper: islands holding a
+    # GND pad or a pre-existing GND via, extended through the kept vias. (Board connectivity treats each
+    # zone as one item, so it can't see a floating island pair held together only by stitching vias.)
+    isl = {l: [z.GetFilledPolysList(l) for z in zones if z.IsOnLayer(l)] for l in (pcbnew.F_Cu, pcbnew.B_Cu)}
+    def where(l, pos):
+        for zi, ps in enumerate(isl[l]):
+            for i in range(ps.OutlineCount()):
+                if ps.Outline(i).PointInside(pos):
+                    return (l, zi, i)
+    anchored = set()
+    for f in b.GetFootprints():
+        for p in f.Pads():
+            if p.GetNetname() == "GND":
+                for l in (pcbnew.F_Cu, pcbnew.B_Cu):
+                    if p.IsOnLayer(l):
+                        anchored.add(where(l, p.GetPosition()))
+    ids = {v.m_Uuid.AsString() for v in new}
+    for t in b.GetTracks():
+        if t.Type() == pcbnew.PCB_VIA_T and t.GetNetname() == "GND" and t.m_Uuid.AsString() not in ids:
+            anchored |= {where(l, t.GetPosition()) for l in (pcbnew.F_Cu, pcbnew.B_Cu)}
+    anchored.discard(None)
+    ends = {v.m_Uuid.AsString(): (where(pcbnew.F_Cu, v.GetPosition()), where(pcbnew.B_Cu, v.GetPosition())) for v in new}
+    grew = True
+    while grew:
+        grew = False
+        for a, c in ends.values():
+            if a and c and (a in anchored) != (c in anchored):
+                anchored |= {a, c}; grew = True
     keep, bad = [], []
     for v in new:
-        pos = v.GetPosition()
-        inside = all(any(z.GetFilledPolysList(l).Contains(pos) for z in zones if z.IsOnLayer(l)) for l in (pcbnew.F_Cu, pcbnew.B_Cu))
-        (keep if inside else bad).append(v)
+        a, c = ends[v.m_Uuid.AsString()]
+        (keep if a in anchored and c in anchored else bad).append(v)
     if not bad:
         break
     for v in bad:

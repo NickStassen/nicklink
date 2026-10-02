@@ -1,6 +1,6 @@
 # NickLink build tools
 
-NickLink v1.2 is generated, not hand-edited. Change the inputs below, then rebuild. Everything runs in the `kicad/kicad:10.0` Docker image, so no local KiCad install is needed. Freerouting runs in `eclipse-temurin:25-jre`.
+NickLink is generated, not hand-edited. Change the inputs below, then rebuild. Everything runs in the `kicad/kicad:10.0` Docker image, so no local KiCad install is needed. Freerouting runs in `eclipse-temurin:25-jre`.
 
 ## Inputs
 
@@ -31,6 +31,9 @@ tools/fab.sh         # gerbers, drills, BOM/CPL, PDFs, renders, checks/
 | `pinout.py` | Writes `docs/pinout.csv` from `spec.py` and prints the README pinout table. |
 | `netreport.py` | Per-net length per layer and via count (check USB/HSE routing). |
 | `build_pcb.py --resilk` | Redraws only the silkscreen on an already-routed board. Use it for label tweaks without re-routing. |
+| `fixroute.sh` | Finishes a connection Freerouting left open: a small two-layer grid router (`fixroute.py`) joins the copper cluster holding one pad to the cluster holding another, e.g. `tools/fixroute.sh in.kicad_pcb out.kicad_pcb GND R5.1 U1.23 0.25`. Run `drc.sh` afterwards. |
+| `gndnet.py` | GND connectivity per pour island (KiCad treats a whole zone as one item), so floating island pairs show up. `stitch.py` uses the same idea. |
+| `swapfp.py` | Swaps a placed footprint for a same-pad variant (e.g. NoSilk) on a routed board, keeping nets and the symbol link. |
 | `nosilk.py` | Copies a library footprint into `nicklink.pretty` without its silkscreen. |
 | `kdock` | Runs a command in the KiCad container with the repo and 3D models mounted. |
 
@@ -39,7 +42,7 @@ tools/fab.sh         # gerbers, drills, BOM/CPL, PDFs, renders, checks/
 ## Routing notes
 
 - `placement.py` `PREROUTE` holds locked tracks laid before autorouting (currently the crystal nets), so the critical nets don't depend on Freerouting.
-- Freerouting's result is very sensitive to placement. If a placement change leaves nets unrouted, run a few `tools/route_try.sh s<n> "" <n>` in parallel (at most about 4, since each Freerouting JVM needs a few GB of RAM). Each one nudges small parts by up to ±0.1 mm (`NICKLINK_SEED`), then routes, stitches and runs DRC. Bake the offsets of a clean seed into `PLACE`; the current layout uses seed 3 (post-review). Hand-routed nets live in `PREROUTE`, `PREROUTE_B` and `PREVIAS` (crystal, IMU fan-out).
+- Freerouting's result is very sensitive to placement. If a placement change leaves nets unrouted, run a few `tools/route_try.sh s<n> "" <n>` in parallel (at most about 4, since each Freerouting JVM needs a few GB of RAM). Each one nudges small parts by up to ±0.1 mm (`NICKLINK_SEED`), then routes, stitches and runs DRC. Bake the offsets of a clean seed into `PLACE`. The current layout uses seed 12 (reliability pass), finished with `fixroute.sh` for the IMU/C2 3V3 feed and R5's GND via. If a seed leaves one or two items, `fixroute.sh` is usually faster than more seeds. Hand-routed nets live in `PREROUTE`, `PREROUTE_B` and `PREVIAS`: crystal, IMU fan-out and GND returns, the power path, the USB-C orientation ties, and GND vias for boxed-in pads.
 - `build_all.sh` retries the route, stitch and DRC step (`TRIES`, default 3) because Freerouting's optimizer is time-limited.
 
 ## Typical edits

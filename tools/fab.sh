@@ -81,7 +81,8 @@ w_mm, h_mm = max(p[0] for p in pts) - x0, max(p[1] for p in pts) - y0
 #   SOT-666 C15999 "-BR": pin 1 bottom-right = KiCad at 180 -> +180
 #   LGA-14 C5267406 "-BR": pin 1 bottom-right = KiCad at 180 -> +180
 # All other parts here (0402/0603, SOD-323, 0402 LEDs, 3225 crystal, WSON-6, B3U) match.
-JLC_ROT = {"LQFP-48": -90, "SOT-666": 180, "LGA-14": 180}
+#   SOT-323 C388477 "-BR": pin 1 bottom-right = KiCad at 180 -> +180 (0805 PTC C22435898 "F0805": matches)
+JLC_ROT = {"LQFP-48": -90, "SOT-666": 180, "LGA-14": 180, "SOT-323": 180}
 def jlc_rot(pkg):
     return next((v for k, v in JLC_ROT.items() if pkg.startswith(k)), 0)
 with open(f"{out}/nicklink_CPL.csv", "w", newline="") as f:

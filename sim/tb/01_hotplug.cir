@@ -1,0 +1,93 @@
+* 01 USB hot-plug: VBUS step through a cable model into the board's VBUS network.
+* Circuit: ideal source (USB-C vSafe5V max 5.5 V, 10 ns contact closure) -> cable L/R ->
+*   VBUS (C13 100n, USBLC6 VBUS Zener) -> D2 1N5819WS -> +5V (C12 10u) -> TLV75533 -> 3V3 caps.
+*   3V3 load 330 ohm (~10 mA: MCU in reset, LED).
+* Sweeps: cable L 0.5/1 uH x R 0.1/0.3 ohm; USBLC6 BV 6 V (min) / 9 V (weak sample);
+*   variants (index: label; parsed by analyze.py, keep in step with the vectors below):
+* VARIANT 0: v1.3 original (C13 100n, C12 10u, C5 10u, no R12)
+* VARIANT 1: +10 uF / 1 ohm ESR bulk on VBUS (tantalum/electrolytic)
+* VARIANT 2: +22 uF / 0.5 ohm ESR bulk on VBUS
+* VARIANT 3: +47 uF / 0.3 ohm ESR bulk on VBUS
+* VARIANT 4: +SMF5.0A TVS on VBUS
+* VARIANT 5: 0.5 ohm series R (or PTC) between VBUS and D2
+* VARIANT 6: 1.0 ohm series R (or PTC) between VBUS and D2
+* VARIANT 7: 1.0 ohm series R + C12 and C5 reduced to 4.7 uF (inrush fix)
+* Pass/fail (evaluated by analyze.py over all cable/clamp corners of a variant):
+*   peak V(+5V) <= 5.75 V PASS, 5.75..6.0 V MARGIN, > 6.0 V FAIL (TLV755 VIN abs max 6.0 V).
+*   Inrush charge (integral of I - I_final over 0.65 ms) <= 50 uC (USB 2.0 7.2.4.1, = 10 uF
+*   at 5 V). Peak VBUS is reported (USBLC6 Zener takes the energy above its VBR).
+.include models/parts.lib
+.include models/caps.lib
+.include models/TLV75533P_TRANS.lib
+.include models/board.lib
+.param VSRC=5.5 LC=1u RC=0.1 BV=6 CB=1p RB=1 RTVS=1e12 RSER=1m C12V=10u C5V=10u
+Vs src 0 PWL(0 0 10n {VSRC})
+Vi src si 0
+Lc si c1 {LC}
+Rc c1 vbus {RC}
+XC13 vbus 0 C100N0402_NL
+XU3 vbus 0 USBLC6_VBUS BV={BV}
+Cb vbus nb {CB}
+Rb nb 0 {RB}
+Rt vbus nt {RTVS}
+Dt 0 nt DSMF5V0A
+Rser vbus na {RSER}
+D2 na p5 D1N5819WS
+XC12 p5 0 MLCC_NL C0={C12V} V0=3.65 ESR=5m ESL=0.5n
+XR p5 p3 p3a NL_RAIL C5={C5V}
+RL p3 0 330
+.ic v(xr.xu2.u1_n08530)=0
+* 0.65 ms: the ring is over in < 100 us and 3V3 is up by ~0.45 ms; the vendor LDO model has an
+* internal event near 0.7-0.8 ms that stalls the bias-dependent C12/C13 model.
+.tran 5n 0.65m 0 50n
+.control
+* variant table (see VARIANT lines in the header): bulk C, its ESR, TVS series R, series R
+compose vcb  values 1p   10u  22u  47u  1p  1p   1p   1p
+compose vrb  values 1    1    0.5  0.3  1   1    1    1
+compose vrt  values 1e12 1e12 1e12 1e12 1m  1e12 1e12 1e12
+compose vrs  values 1m   1m   1m   1m   1m  0.5  1.0  1.0
+compose vc12 values 10u  10u  10u  10u  10u 10u  10u  4.7u
+compose vlc  values 0.5u 0.5u 1u 1u
+compose vrc  values 0.1  0.3  0.1 0.3
+compose vbv  values 6 9
+let iv = 0
+while iv < length(vcb)
+  let ic = 0
+  while ic < 4
+    let ib = 0
+    while ib < 2
+      let x = vcb[iv]
+      alterparam CB = $&x
+      let x = vrb[iv]
+      alterparam RB = $&x
+      let x = vrt[iv]
+      alterparam RTVS = $&x
+      let x = vrs[iv]
+      alterparam RSER = $&x
+      let x = vc12[iv]
+      alterparam C12V = $&x
+      alterparam C5V = $&x
+      let x = vlc[ic]
+      alterparam LC = $&x
+      let x = vrc[ic]
+      alterparam RC = $&x
+      let x = vbv[ib]
+      alterparam BV = $&x
+      reset
+      run
+      let n = 100*iv + 10*ic + ib
+      set ns = "$&n"
+      let a = vlc[ic]
+      let b = vrc[ic]
+      let c = vbv[ib]
+      echo "CASE hp_{$ns} variant=$&iv LC=$&a RC=$&b BV=$&c"
+      wrdata results/hp_{$ns}.dat v(vbus) v(p5) v(p3) i(vi)
+      destroy all
+      let ib = ib + 1
+    end
+    let ic = ic + 1
+  end
+  let iv = iv + 1
+end
+.endc
+.end

@@ -6,7 +6,7 @@ v1.3 adds an on-board 6-axis IMU for motion tracking, robotics and tap-activated
 |---|---:|---:|
 | Outline | 33.19 × 25.5 mm (846 mm²) | **33.99 × 25.5 mm (867 mm²)** |
 | vs v1.1 (1122 mm²) | −25% | **−23%** |
-| Parts | 33 | 38 |
+| Parts | 33 | 42 |
 
 **IMU circuit** (ST LSM6DSV16X, LGA-14 2.5 × 3 mm, LCSC C5267406):
 
@@ -76,6 +76,64 @@ Five independent reviewers checked v1.3 at commit a913740, one area each. They c
 **Bring-up additions:** scan I2C1 (expect 0x6A); read WHO_AM_I (0Fh) and expect 0x70; enable tap detection on INT1 and check that A0 pulses; confirm that A0 is not driven from outside while INT1 is push-pull.
 
 **Cost:** the LSM6DSV16X is a JLC Extended part, about $3.44 each or $2.47 each at 100, plus a loading fee. The other new parts are Basic: 4.7 kΩ (C25900), 100 nF (C1525).
+
+
+## Reliability pass (2026-10-02)
+
+This pass follows up the audit's known limitations and an STM32 best-practice audit (AN2586, AN4879, AN2867, DS5319; `tools/_work/audit_stm32/`). It adds a SPICE suite (`sim/`) and an emulated test firmware (`firmware/`).
+
+**Power path**, now VBUS → R12 → D2 → VSYS → LDO, plus VSYS → F1 → Q1 → J1.1:
+
+| Change | Why | Evidence |
+|---|---|---|
+| **R12 1 Ω 0805 anti-surge** (Yageo SR0805, 0.5 W) in series with VBUS | USB hot-plug ringing reached 6.1–11.4 V at LDO IN without it (abs max 6.0 V) | SPICE bench 11: 5.38 V worst case over 8 cable/clamp corners; R12 pulse 13 W / 44 µJ, about 100 W rated |
+| **C12 10 µF → 4.7 µF**; the 10 µF 3V3 bulk (C5) removed | USB inrush ≤ 50 µC | 33 µC as built |
+| **F1 0.5 A PPTC (16 V) + Q1 DMP2165UW** on the J1.1 branch only | 5V-pin short (J1.1 is next to GND) or reversed supply | A short trips F1 while the MCU keeps running; Q1 blocks a reversed supply |
+| **C4 (VDD3) 100 nF → 4.7 µF** | DS5319 Fig. 14: the 4.7 µF must be on VDD3 | — |
+| **D+ pull-up from VBUS**: R2 2.2 kΩ + R11 4.7 kΩ (1.5 kΩ Thevenin to 3.4 V) | AN4879 §3.1.1: the pull-up must only be present with VBUS. This removes the J1.1 back-feed into the host. | — |
+| **R6 1k5 → 330 Ω** | The user LED was dim at 0.4 mA | 1.32 mA typical, 0.95–1.79 mA across bins, PC13 limit 3 mA |
+
+R12 costs headroom: LDO IN is 3.81 V at 250 mA from a 4.40 V hub port. 500 mA from 4.40 V is 8 mV into worst-case dropout, but that is beyond the 250 mA thermal budget anyway.
+
+**Layout and routing**
+
+- **Locked tracks:**
+  - C13 now faces J2, with VBUS locked from U3 pin 5 through C13 to J2.A4.
+  - The USB-C orientation ties are locked: VBUS B4–A9 and B9–A4, plus a B.Cu cross-link above the B row; D+ B6–A6 on B.Cu; D− A7–B7 on F.Cu.
+  - The D+ pull-up's VBUS feed is locked.
+  - The C2/IMU 3V3 feed is locked: from the LDO output cap down to C2, then on to the IMU's VDD loop.
+  - The IMU's bottom GND pads have a short return to its decoupling caps.
+- **GND vias** for R3 and VSS_2 (pin 35), which the new parts had boxed in.
+- **`tools/stitch.py`:** stitching vias are now checked per fill island, and a via survives only if it joins islands anchored to real GND copper. KiCad treats a zone as a single item, so its own connectivity can't see a floating island pair. `tools/gndnet.py` reports GND clusters the same way.
+
+**STM32 checklist** (no hardware change needed, documented in the README):
+- PVD in firmware, since there is no BOR. Bench 3 shows a 200 mV window where VDD is below 2.0 V but not yet reset.
+- CSS/HSE fallback.
+- JTAG reset state of PA15/PB3/PB4.
+- Injection limits: none allowed on PA4/PA5/PC13–15.
+- A0's permanent 10 kΩ pull-down from INT1.
+- I2C at 400 kHz is good up to about 75 pF.
+
+**Simulation** (`sim/`, ngspice): every check passes except:
+- **Margin:** 500 mA from 4.40 V; the PVD window above; crystal drive level, which depends on the OSC_IN swing (measure at bring-up); and a +17 dB VDDA LC peak at 288 kHz (a 1 Ω in series with C7 would fix it, but it is left as is).
+- **Fail:** I2C at 400 kHz with 100 pF of bus capacitance.
+
+**Firmware** (`firmware/`): bare-metal bring-up firmware, with its pin table generated from `spec.py`. A Renode model of the board (custom RCC and LSM6DSV16X peripherals) runs 10 Robot Framework tests:
+- 72 MHz from HSE, and the HSI fallback when the HSE fails;
+- the user LED;
+- IMU WHO_AM_I, samples, tap/double-tap, and wake on INT1 → PA0;
+- the generated pin map;
+- a walk of every header GPIO, driven one at a time;
+- input monitoring;
+- NRST and software reset.
+
+All 10 pass. Emulation proves the firmware and the pin map, not the silicon.
+
+**Superseded "known limitations":**
+- C13 now sits on the locked VBUS path.
+- J1.1 has a fuse and reverse protection.
+- The user LED is brighter.
+- The C2 GND return was shortened in the audit round.
 
 ---
 

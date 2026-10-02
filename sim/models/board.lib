@@ -1,0 +1,41 @@
+* NickLink v1.3 power rail from +5V down (values from tools/spec.py). C12 (+5V, 10u 0603) is
+* instantiated by each testbench so hot-plug can use the bias-dependent model.
+* Param C5 = nominal 3V3 bulk (C5 10u 0603 as built; only the hot-plug fix study changes it).
+* p5 = +5V (J1.1, C12, U2 IN/EN), p3 = +3.3V, p3a = +3.3VA.
+* Soft-start node for .ic: v(<inst>.xu2.u1_n08530)=0 (see parts.lib header).
+.subckt NL_RAIL p5 p3 p3a params: C5=10u
+XU2 p5 0 p5 p3 nc TLV75533P_TRANS
+XC8 p3 0 C1U0402
+XC5 p3 0 MLCC C0={C5} V0=3.65 ESR=5m ESL=0.5n VB=3.3
+XC1 p3 0 C100N0402
+XC2 p3 0 C100N0402
+XC3 p3 0 C100N0402
+XC4 p3 0 C100N0402
+XC14 p3 0 C100N0402
+XC15 p3 0 C100N0402
+XFB1 p3 p3a BLM15AG121
+XC6 p3a 0 C100N0402
+XC7 p3a 0 C1U0402
+* Power LED D1 + R3 (always on, ~1 mA)
+D1 p3 led_k LED_R_TYP
+R3 led_k 0 1.5k
+.ends NL_RAIL
+
+* Current spec.py rail (after the hot-plug rework): no C5; C4 4.7 uF 0402 X5R 10 V at VDD3
+* (V0 = 3.1 assumed, 47 % at 3.3 V); C1-C3, C14, C15 100 nF; C8 1 uF; FB1 + C6/C7; D1 + R3.
+* C12 (4.7 uF 0402 on VSYS) is instantiated by the testbench. p5 = VSYS.
+.subckt NL_RAIL_V13 p5 p3 p3a
+XU2 p5 0 p5 p3 nc TLV75533P_TRANS
+XC8 p3 0 C1U0402
+XC4 p3 0 MLCC C0=4.7u V0=3.1 ESR=10m ESL=0.3n VB=3.3
+XC1 p3 0 C100N0402
+XC2 p3 0 C100N0402
+XC3 p3 0 C100N0402
+XC14 p3 0 C100N0402
+XC15 p3 0 C100N0402
+XFB1 p3 p3a BLM15AG121
+XC6 p3a 0 C100N0402
+XC7 p3a 0 C1U0402
+D1 p3 led_k LED_R_TYP
+R3 led_k 0 1.5k
+.ends NL_RAIL_V13

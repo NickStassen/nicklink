@@ -1,0 +1,50 @@
+* 06 I2C1 rise/fall time: 4.7 k pull-ups (R7/R9) to 3.3 V, bus capacitance 20/40/100 pF.
+* Driver: open-drain NMOS (STM32 FT pin / IMU), 50 ohm on-resistance (VOL 0.4 V @ 8 mA).
+* Clock: 400 kHz, F103 Fm duty 2:1 (tLOW 1.67 us, tHIGH 0.83 us), plus a 100 kHz run.
+* I2C spec (UM10204): tr (30 -> 70 % VDD) <= 300 ns Fm / 1000 ns Sm; tf <= 300 ns;
+*   VOL <= 0.4 V at 3 mA.
+* Pass: tr <= 300 ns at 400 kHz (MARGIN within 20 %), the line reaches 0.7 VDD before the
+*   end of tHIGH.
+.include models/parts.lib
+.param CB=20p TLOW=1.667u THIGH=0.833u
+V33 p3 0 3.3
+Rp p3 scl 4.7k
+Cb scl 0 {CB}
+Vclk g 0 PULSE(0 1 1u 2n 2n {TLOW} {TLOW+THIGH})
+Sdrv scl nd g 0 SWX
+Rdrv nd 0 50
+.tran 1n 12u 0 2n
+.control
+compose vc values 20p 40p 100p
+compose vf values 400k 100k
+let j = 0
+while j < 2
+  let k = 0
+  while k < length(vc)
+    let x = vc[k]
+    alterparam CB = $&x
+    if j = 0
+      alterparam TLOW = 1.667u
+      alterparam THIGH = 0.833u
+    else
+      alterparam TLOW = 4.7u
+      alterparam THIGH = 5.3u
+    end
+    reset
+    if j = 0
+      tran 1n 12u 0 2n
+    else
+      tran 1n 45u 0 2n
+    end
+    let n = 10*j + k
+    set ns = "$&n"
+    let f = vf[j]
+    echo "CASE i2c_{$ns} CB=$&x F=$&f"
+    wrdata results/i2c_{$ns}.dat v(scl)
+    destroy all
+    let k = k + 1
+  end
+  let j = j + 1
+end
+.endc
+.end

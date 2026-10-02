@@ -1,0 +1,52 @@
+* 02 LDO start-up, load steps and model validation (TLV75533P, TI SBVM831 vendor model).
+* A) Board (current spec.py): VBUS stepped 0 -> VIN (10 us ramp, 50 mohm source) -> C13 ->
+*    R12 1 ohm -> D2 -> VSYS = LDO IN (C12 4.7u 0402), EN tied to IN (soft-start); then 3V3 load
+*    steps with 1 us edges: 0 -> 50 mA (2 ms) -> 250 mA (3 ms) -> 50 mA (4 ms) -> 0 (5 ms), so
+*    each step is also a line step on VSYS (I x R12). 3V3 bank NL_RAIL_V13: C8 1u, C4 4.7u 0402,
+*    5x100n, FB1 + C6/C7, all derated at bias. VIN (VBUS) = 5.0 V and 4.40 V (USB minimum).
+* B) Validation: datasheet Fig. 5-8 conditions (VIN 5 V, CIN = COUT = 1 uF ideal, 1 -> 500 mA
+*    at 1 A/us). Datasheet shows about -60 mV / +70 mV.
+* Pass: start-up monotonic, overshoot < 3 % ; during steps 3V3 stays within 3.3 V +-3 %
+*   (3.20..3.40 V; STM32 VDD 2.0..3.6 V is far wider) and settles to within 10 mV in < 100 us.
+* Stability: the vendor transient model has no small-signal loop (the output is a behavioural
+*   source behind 36 mohm), so phase margin cannot be computed from it. The check is TI's
+*   stability condition instead (analyze.py): effective COUT >= 0.47 uF, nominal 1..200 uF,
+*   ceramic ESR.
+.include models/parts.lib
+.include models/caps.lib
+.include models/TLV75533P_TRANS.lib
+.include models/board.lib
+.param VIN=5.0
+* --- A) board -------------------------------------------------------------------------
+Vin vbs 0 PWL(0 0 10u {VIN})
+Rsrc vbs vbus 0.05
+XC13 vbus 0 C100N0402 VB=5
+R12 vbus vbus_d 1.0
+D2 vbus_d p5 D1N5819WS
+XC12 p5 0 MLCC C0=4.7u V0=3.1 ESR=10m ESL=0.3n VB=5
+XR p5 p3 p3a NL_RAIL_V13
+IL p3 0 PWL(0 0 2m 0 2.001m 50m 3m 50m 3.001m 250m 4m 250m 4.001m 50m 5m 50m 5.001m 0)
+* --- B) datasheet validation circuit --------------------------------------------------
+Vv vin_v 0 5
+Cvin vin_v 0 1u
+XUV vin_v 0 vin_v vout_v nc TLV75533P_TRANS
+Cvout vout_v 0 1u
+ILV vout_v 0 PWL(0 1m 2m 1m 2.0005m 501m 2.1m 501m 2.1005m 1m)
+.ic v(xr.xu2.u1_n08530)=0 v(xuv.u1_n08530)=0
+.tran 20n 6m 0 200n
+.control
+compose vv values 5.0 4.40
+let k = 0
+while k < length(vv)
+  let x = vv[k]
+  alterparam VIN = $&x
+  reset
+  run
+  set ks = "$&k"
+  echo "CASE ldo_{$ks} VIN=$&x"
+  wrdata results/ldo_{$ks}.dat v(p5) v(p3) v(p3a) i(vin) v(vout_v)
+  destroy all
+  let k = k + 1
+end
+.endc
+.end

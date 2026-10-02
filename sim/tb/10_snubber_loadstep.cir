@@ -1,0 +1,51 @@
+* 10b LDO load steps with the input cap partly behind the snubber Rs (bench 10 variants).
+* Supply: VBUS 5.0 V (100 us ramp, no hot-plug ring) through the 1 uH / 0.1 ohm cable (worst Q)
+*   -> C13 -> D2 -> VSYS; snubber Rs + C12 4.7u 0402; optional Cd on VSYS; caps linear at 5 V.
+* Load on 3V3: 0 -> 50 mA (2 ms) -> 250 mA (3 ms) -> 50 mA (4 ms) -> 0 (5 ms), 1 us edges.
+* VARIANT index as 10a (0..8 = Rs x Cd, 9 = Rs 1.0 + Cd 100n + C5 4.7u); variant 10 = reference,
+*   C12 4.7u directly on VSYS (no Rs, no Cd).
+* Reported: 3V3 min/max and 10 mV settling; VSYS dip and ring after each step.
+* Stability caveat: the TI model has no loop, so input-impedance interaction with the LDO loop
+*   is not modelled; the CIN rule is checked separately in analyze.py.
+.include models/parts.lib
+.include models/caps.lib
+.include models/TLV75533P_TRANS.lib
+.include models/board.lib
+.param RS=1 CD=1p CDV0=6.6 C5V=10u
+Vs src 0 PWL(0 0 100u 5)
+Lc src c1 1u
+Rc c1 vbus 0.1
+XC13 vbus 0 C100N0402 VB=5
+D2 vbus vsys D1N5819WS
+Rs vsys nc {RS}
+XC12 nc 0 MLCC C0=4.7u V0=3.1 ESR=10m ESL=0.3n VB=5
+XCD vsys 0 MLCC C0={CD} V0={CDV0} ESR=10m ESL=0.3n VB=5
+XR vsys p3 p3a NL_RAIL C5={C5V}
+IL p3 0 PWL(0 0 2m 0 2.001m 50m 3m 50m 3.001m 250m 4m 250m 4.001m 50m 5m 50m 5.001m 0)
+.ic v(xr.xu2.u1_n08530)=0
+.tran 20n 6m 0 200n
+.control
+compose vrs  values 0.5 0.5  0.5 1.0 1.0  1.0 2.2 2.2  2.2 1.0  1m
+compose vcd  values 1p  100n 1u  1p  100n 1u  1p  100n 1u  100n   1p
+compose vcd0 values 6.6 6.6  4.04 6.6 6.6 4.04 6.6 6.6 4.04 6.6 6.6
+compose vc5  values 10u 10u  10u 10u 10u  10u 10u 10u  10u 4.7u 10u
+let iv = 0
+while iv < length(vrs)
+  let x = vrs[iv]
+  alterparam RS = $&x
+  let x = vcd[iv]
+  alterparam CD = $&x
+  let x = vcd0[iv]
+  alterparam CDV0 = $&x
+  let x = vc5[iv]
+  alterparam C5V = $&x
+  reset
+  run
+  set ns = "$&iv"
+  echo "CASE snl_{$ns} variant=$&iv"
+  wrdata results/snl_{$ns}.dat v(vsys) v(p3)
+  destroy all
+  let iv = iv + 1
+end
+.endc
+.end

@@ -1,0 +1,16 @@
+// NickLink v1.3: Renode's STM32F103 + board-level parts (see ../README.md "Emulation").
+// Needs `include @NickLinkRCC.cs` and `include @LSM6DSV16X.cs` before loading.
+using "platforms/cpus/stm32f103.repl"
+
+rcc: Miscellaneous.NickLinkRCC @ sysbus <0x40021000, +0x400>
+
+// IMU on I2C1 at 0x6A; INT1 -> 10k -> PA0
+imu: Sensors.LSM6DSV16X @ i2c1 0x6A
+    INT1 -> gpioPortA@0
+
+// D3 green user LED from 3V3 into PC13: PC13 low = on
+led: Miscellaneous.LED @ gpioPortC 13
+    invert: true
+
+gpioPortC:
+    13 -> led@0

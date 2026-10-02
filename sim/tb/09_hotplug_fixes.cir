@@ -1,0 +1,98 @@
+* 09 Hot-plug follow-up: the power reviewer's candidate topologies (same source, cable and
+* clamp corners as 01: 5.5 V ideal step; L 0.5/1 uH x R 0.1/0.3 ohm; USBLC6 BV 6/9 V).
+* Base topology (A): VBUS -> U3/C13 100n -> [RFV] -> [RSER] -> D2 1N5819WS -> VSYS
+*   (C12 = 4.7 uF 0402 X5R 10 V, TLV75533 IN/EN on VSYS) -> F1 PTC (RFH) -> Q1 P-FET 90 mohm
+*   -> J1.1 header, left open. C5 stays 10 uF. VSYS is the LDO IN net (no trace L modelled).
+* PTC LUTE 0805L050/16XR modelled as its untripped resistance (0.1/0.3/0.6 ohm sweep).
+* 0402 C12 derating (assumed, Murata GRM155R61A475/225 class DC-bias curves):
+*   4.7u 0402 10 V: V0 = 3.1 -> 47 % at 3.3 V, 28 % at 5 V;  2.2u 0402 10 V: V0 = 4.0 -> 40 % at 5 V;
+*   4.7u 0603 10 V: V0 = 4.3 -> 43 % at 5 V;  10u 0603: V0 = 3.65 as in caps.lib. Variants 7-9
+*   (E..E'') are the simulator's own follow-up candidates, added after A-D all failed.
+* VARIANT 0: A (F1 on header side, R 0.3 ohm; F1/Q1 carry no current with J1.1 open)
+* VARIANT 1: B, F1 0.1 ohm between VBUS and D2
+* VARIANT 2: B, F1 0.3 ohm between VBUS and D2
+* VARIANT 3: B, F1 0.6 ohm between VBUS and D2
+* VARIANT 4: C, A + 0.5 ohm series R between VBUS and D2
+* VARIANT 5: C, A + 1.0 ohm series R between VBUS and D2
+* VARIANT 6: D, A with C12 = 2.2 uF 0402
+* VARIANT 7: E, C12 4.7 uF 0603 + 0.75 ohm series R + C5 4.7 uF 0603
+* VARIANT 8: E', C12 4.7 uF 0402 + 0.75 ohm series R + C5 4.7 uF 0603
+* VARIANT 9: E'', C12 10 uF 0603 (v1.3 original) + 0.5 ohm series R + C5 4.7 uF 0603
+* Pass (analyze.py, worst over all corners): VSYS/LDO IN peak <= 5.8 V; inrush <= 50 uC
+*   (simulated value + the charge the linear 3V3 caps undercount, see analyze.py).
+.include models/parts.lib
+.include models/caps.lib
+.include models/TLV75533P_TRANS.lib
+.include models/board.lib
+.param VSRC=5.5 LC=1u RC=0.1 BV=6 RFV=1m RSER=1m RFH=0.3 C12V=4.7u C12V0=3.1 C5V=10u
+Vs src 0 PWL(0 0 10n {VSRC})
+Vi src si 0
+Lc si c1 {LC}
+Rc c1 vbus {RC}
+XC13 vbus 0 C100N0402_NL
+XU3 vbus 0 USBLC6_VBUS BV={BV}
+RFV vbus nf {RFV}
+Rser nf na {RSER}
+D2 na vsys D1N5819WS
+XC12 vsys 0 MLCC_NL C0={C12V} V0={C12V0} ESR=10m ESL=0.3n
+XR vsys p3 p3a NL_RAIL C5={C5V}
+RL p3 0 330
+RFH vsys nq {RFH}
+RQ1 nq hdr 0.09
+Chdr hdr 0 10p
+.ic v(xr.xu2.u1_n08530)=0
+* 0.6 ms (see 01): 3V3 is up by ~0.45 ms; longer runs can stall in the bias-dependent C12.
+.tran 5n 0.6m 0 50n
+.control
+* variant table (see VARIANT lines): F1 on VBUS side, series R, F1 on header side, C12, C12 V0
+compose vfv  values 1m  0.1 0.3 0.6 1m  1m  1m   1m   1m   1m
+compose vrs  values 1m  1m  1m  1m  0.5 1.0 1m   0.75 0.75 0.5
+compose vfh  values 0.3 1m  1m  1m  0.3 0.3 0.3  0.3  0.3  0.3
+compose vc12 values 4.7u 4.7u 4.7u 4.7u 4.7u 4.7u 2.2u 4.7u 4.7u 10u
+compose vc0  values 3.1 3.1 3.1 3.1 3.1 3.1 4.0  4.3  3.1  3.65
+compose vc5  values 10u 10u 10u 10u 10u 10u 10u  4.7u 4.7u 4.7u
+compose vlc  values 0.5u 0.5u 1u 1u
+compose vrc  values 0.1  0.3  0.1 0.3
+compose vbv  values 6 9
+let iv = 0
+while iv < length(vfv)
+  let ic = 0
+  while ic < 4
+    let ib = 0
+    while ib < 2
+      let x = vfv[iv]
+      alterparam RFV = $&x
+      let x = vrs[iv]
+      alterparam RSER = $&x
+      let x = vfh[iv]
+      alterparam RFH = $&x
+      let x = vc12[iv]
+      alterparam C12V = $&x
+      let x = vc0[iv]
+      alterparam C12V0 = $&x
+      let x = vc5[iv]
+      alterparam C5V = $&x
+      let x = vlc[ic]
+      alterparam LC = $&x
+      let x = vrc[ic]
+      alterparam RC = $&x
+      let x = vbv[ib]
+      alterparam BV = $&x
+      reset
+      run
+      let n = 100*iv + 10*ic + ib
+      set ns = "$&n"
+      let a = vlc[ic]
+      let b = vrc[ic]
+      let c = vbv[ib]
+      echo "CASE hf_{$ns} variant=$&iv LC=$&a RC=$&b BV=$&c"
+      wrdata results/hf_{$ns}.dat v(vbus) v(vsys) v(p3) i(vi)
+      destroy all
+      let ib = ib + 1
+    end
+    let ic = ic + 1
+  end
+  let iv = iv + 1
+end
+.endc
+.end

@@ -10,6 +10,15 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 
 **v1.3** adds the IMU on I2C1. It fits into existing gaps beside the MCU, on the top side with single-sided assembly. The board is 0.8 mm wider than v1.2 only because the pin labels grew to JLC's 1.0 mm minimum text height (see [JLCPCB design rules](#jlcpcb-design-rules)). PB6/PB7 get 4.7 kΩ pull-ups again, because the bus now has an on-board device. The IMU's INT1 drives PA0. The 3V3 budget drops by about 1 mA for the IMU. Everything else is as in v1.2.
 
+**v1.3 reliability pass** (from a five-reviewer audit, the SPICE benches in [`sim/`](sim/) and ST's AN2586/AN4879 checklists):
+
+- **Hot-plug damping:** R12, 1 Ω in series with VBUS, keeps the cable ring under the LDO's 6 V absolute maximum and inrush under 50 µC.
+- **Protected 5V pin:** J1.1 now has a 0.5 A polyfuse (F1) and a reverse-polarity P-MOSFET (Q1), so a short or a reversed supply no longer reaches VSYS unprotected.
+- **D+ pull-up from VBUS** (AN4879 §3.1.1): it is present only while USB is plugged in. Powering from J1.1 no longer back-feeds the host.
+- **Decoupling:** C4 at VDD3 is now 4.7 µF, as DS5319 requires. C12 (LDO input) is 4.7 µF, to keep inrush down.
+- **User LED:** R6 is 330 Ω: about 1.3 mA instead of 0.4 mA, still within PC13's 3 mA sink limit.
+- **Routing:** locked tracks for the USB-C orientation ties and the IMU's 3V3 feed. Every GND pad and pour island is checked for connection.
+
 **v1.2** changes from v1.1:
 
 | | v1.1 | v1.2 → v1.3 |
@@ -30,8 +39,8 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 ## Hardware
 
 - STM32F103C8T6 (LQFP-48) with an 8 MHz crystal (12 pF load, 15 pF C0G caps): PLL ×9 = 72 MHz, USB clock 72 / 1.5 = 48 MHz.
-- USB-C (GCT USB4085, through-hole) for power and USB full speed; 5.1 kΩ CC pull-downs for either orientation; 1.5 kΩ D+ pull-up; USBLC6-2P6 ESD array.
-- Power path: USB VBUS → 1N5819WS Schottky → **5V rail** (J1.1) → TLV75533 LDO → **3V3** (J3.1, J1.20). The Schottky stops a supply on the 5V pin from back-feeding the USB host.
+- USB-C (GCT USB4085, through-hole) for power and USB full speed; 5.1 kΩ CC pull-downs for either orientation; D+ pull-up from VBUS (2.2 kΩ / 4.7 kΩ divider, 1.5 kΩ to 3.4 V, so it is present only while USB is plugged in); USBLC6-2P6 ESD array.
+- Power path: USB VBUS → R12 1 Ω (hot-plug damping) → 1N5819WS Schottky → **VSYS** → TLV75533 LDO → **3V3** (J3.1, J1.20). VSYS also reaches the **5V pin** (J1.1) through a 0.5 A polyfuse (F1) and a reverse-polarity P-MOSFET (Q1). The Schottky stops a supply on the 5V pin from back-feeding the USB host.
 - RESET button (NRST to GND, 100 nF), BOOT button (BOOT0 to 3V3, 10 kΩ pull-down), 10 kΩ pull-down on PB2/BOOT1.
 - Red power LED, green user LED on PC13 (active low).
 - **IMU:** ST LSM6DSV16X 6-axis accelerometer and gyroscope on I2C1 (PB6 SCL / PB7 SDA, address **0x6A**), INT1 to PA0.
@@ -69,8 +78,9 @@ Pins not marked "3.3 V only" are 5 V tolerant (FT) while the board is powered. B
 
 - **SWD:** J3.1 3V3 (target voltage sense), J3.2 GND, J3.7 SWDIO, J3.8 SWCLK, J3.10 NRST, optional J3.9 SWO.
 - **Serial bootloader:** hold BOOT, tap RESET, release BOOT, then use USART1 on J3.3 (TX) / J3.4 (RX). This is ST's factory USART bootloader; the F103 has no factory USB DFU bootloader.
-- **I2C1 / IMU:** I2C1 has on-board 4.7 kΩ pull-ups. External I2C modules can share the bus as long as they avoid address 0x6A and **pull up to 3.3 V only**. A 5 V module needs a level shifter, because the IMU's SCL/SDA limit is 3.6 V. If modules bring their own pull-ups, keep the combined value above about 1.5 kΩ.
-- **A0 has the IMU's INT1 on it through 10 kΩ.** INT1 is driven low from power-up until firmware configures the IMU, so A0 sees a weak 10 kΩ pull-down by default, and the interrupt is active high once enabled. You can still drive A0 from outside. For a high-impedance A0 (ADC or open signals), set INT1 to open-drain (`PP_OD`, IF_CFG 03h bit 3).
+- **I2C1 / IMU:** I2C1 has on-board 4.7 kΩ pull-ups. External I2C modules can share the bus as long as they avoid address 0x6A and **pull up to 3.3 V only**. A 5 V module needs a level shifter, because the IMU's SCL/SDA limit is 3.6 V. If modules bring their own pull-ups, keep the combined value above about 1.5 kΩ. The 4.7 kΩ pull-ups meet the 400 kHz rise-time limit up to about 75 pF of bus capacitance (roughly 30 cm of wiring plus a few modules); for longer runs, use 100 kHz.
+- **A0 has the IMU's INT1 on it through 10 kΩ.** INT1 drives low whenever no interrupt is asserted, so A0 always sees a 10 kΩ pull-down (also with INT1 set to open-drain, which only releases the pin while active-high). The interrupt is active high, matching WKUP's rising edge. You can still drive A0 from outside, or use it as an ADC input from a low-impedance source. Making A0 truly high-impedance needs INT1 set active-low open-drain (`H_LACTIVE` + `PP_OD`, IF_CFG 03h), which inverts the interrupt and stops it from waking the MCU through WKUP.
+- **J3.6/J3.9/J3.11 (PA15/PB3/PB4) are JTAG pins at reset:** PA15 and PB4 have internal pull-ups and PB3 (JTDO/SWO) has none, until firmware frees them (`__HAL_AFIO_REMAP_SWJ_NOJTAG()` keeps SWD and releases them). PA13/PA14 stay SWD unless you disable SWJ completely, after which the debugger has to connect under reset (NRST is on J3.10).
 - **User LED:** PC13 low turns it on. PC13–PC15 are low-drive pins (sink ≤3 mA, ≤2 MHz) and must not source current.
 
 ## IMU
@@ -89,9 +99,10 @@ Placement follows ST's LGA guidance: the IMU sits on the top side, with no groun
 
 ## Power
 
-- **5V pin (J1.1):** USB VBUS minus about 0.3–0.4 V when USB powers the board. It can also power the board: apply 4.5–5.5 V there. **Do not exceed 5.5 V**; the regulator's absolute maximum is 6 V. The Schottky carries at most about 400 mA (thermal limit).
-- **3V3 pins (J3.1, J1.20):** LDO outputs. Budget about **250 mA total including the MCU** when powered from USB. That figure is an estimate for this two-layer board (with two thermal vias under the LDO), not a measured limit. From a 5.5 V input on J1.1, keep below about 200 mA. **Do not feed 3V3 in from outside**: the TLV755 has no reverse-current protection. J1.1 has no fuse or reverse-polarity protection, and its 5V and GND pins are adjacent.
-- **Powering from J1.1 with USB unplugged:** the always-on D+ pull-up back-feeds a little voltage into VBUS through the ESD part. A strict USB-C (C-to-C) host may then refuse to attach until the board is powered from USB. An A-to-C cable is fine.
+- **5V pin (J1.1), as an output:** VSYS through F1 (0.5 A hold, 1 A trip) and Q1. On USB that is VBUS minus R12's and D2's drop: about 4.7 V at light load, 4.4 V at 250 mA total. A short from J1.1 to the adjacent GND pin trips F1 and the MCU keeps running; F1 resets once the short is removed.
+- **5V pin (J1.1), as an input:** apply 4.5–5.5 V. **Do not exceed 5.5 V**; the regulator's absolute maximum is 6 V. Q1 blocks a reversed supply, and F1 limits the current. D2 keeps J1.1 from back-feeding the USB host. With USB unplugged, the D+ pull-up is unpowered, so the host sees no device until USB is connected.
+- **3V3 pins (J3.1, J1.20):** LDO outputs. Budget about **250 mA total including the MCU** when powered from USB. That figure is an estimate for this two-layer board (with two thermal vias under the LDO), not a measured limit. From a 5.5 V input on J1.1, keep below about 200 mA. **Do not feed 3V3 in from outside**: the TLV755 has no reverse-current protection.
+- **Hot-plug:** USB cables ring when plugged in live. SPICE (`sim/` bench 11) puts the worst-case LDO input peak at 5.38 V with R12 fitted, against 6.1–11.4 V without it. R12 also keeps inrush to 33 µC (USB limit 50 µC). The cost is about 0.25 V less headroom at 250 mA. A long-lead bench supply on J1.1 bypasses R12, so turn the supply on after connecting it.
 
 ## Mounting
 
@@ -154,7 +165,7 @@ The BOM carries verified LCSC part numbers for JLCPCB SMD assembly. The USB-C co
 
 Bring-up:
 
-1. Check for shorts, then apply current-limited 5 V and verify 5V (≈4.7 V on USB), 3V3 and VDDA.
+1. Check for shorts, then apply current-limited 5 V and verify 5V (≈4.7 V on USB at light load), 3V3 and VDDA.
 2. Connect SWD and confirm the RESET button resets the chip.
 3. Configure firmware for the **8 MHz HSE**: PLL ×9 = 72 MHz, USB prescaler /1.5. Verify that the oscillator starts. If the HSE runs fast, try 18 pF load capacitors.
 4. Check USB enumeration in both cable orientations, then BOOT + RESET into the USART1 bootloader.
@@ -166,6 +177,15 @@ Bring-up:
 - USB and CAN cannot run at the same time on the F103 (they share packet RAM).
 - CAN uses PB8/PB9 through the remap and needs an external transceiver.
 - USB impedance and compliance are not qualified.
+
+**Firmware notes for reliability:**
+
+- The F103 has power-on/power-down reset but **no brown-out reset**. Enable the PVD (for example at 2.9 V) and stop flash writes when it trips.
+- Enable the clock security system (CSS). If the HSE fails, the MCU falls back to HSI. USB cannot run from HSI, so treat that as a fault.
+- Do not drive header pins while the board is unpowered. Keep injected current within ±5 mA per pin; PA4, PA5 and PC13–PC15 tolerate none.
+- Set unused pins to analog input (the lowest-power, defined state) and free JTAG with `NOJTAG` if PA15/PB3/PB4 are used as GPIO.
+
+**Simulation and test firmware:** [`sim/`](sim/) holds ngspice benches for hot-plug, LDO, brown-out, reset, LEDs, I2C, VDDA and the crystal, with results in `sim/results/summary.md`. [`firmware/`](firmware/) is a bring-up firmware for this pinout. It exercises the user LED, RESET, every header GPIO, the IMU (including tap wake on A0), USART1 and the HSE/PLL with HSI fallback, and runs under Renode emulation (`firmware/test.sh`) before you flash the real board.
 
 ## References
 

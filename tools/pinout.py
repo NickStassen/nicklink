@@ -11,7 +11,7 @@ import spec  # noqa: E402
 FT = {f"PA{i}" for i in range(8, 16)} | {"PB2", "PB3", "PB4"} | {f"PB{i}" for i in range(6, 16)}
 # Pins that are FT on the MCU but not at board level: the IMU's SCL/SDA max is VDDIO + 0.3 V.
 BOARD_3V3 = {"PB6", "PB7"} if "U4" in spec.PARTS else set()
-POWER = {"+3.3V": "3V3 regulated output", "+5V": "5V (USB VBUS after Schottky; <=5.5 V input)", "GND": "GND", "NRST": "NRST (reset, active low)"}
+POWER = {"+3.3V": "3V3 regulated output", "+5V": "5V (USB VBUS via Schottky + 0.5 A PTC; 4.5-5.5 V input, reverse-polarity protected)", "GND": "GND", "NRST": "NRST (reset, active low)"}
 
 
 def label(net):

@@ -1,0 +1,36 @@
+* MLCC models. DC-bias derating C(V) = C0 / (1 + (V/V0)^2), plus ESR and ESL.
+* Fits (approximate Samsung/Murata published DC-bias curves, +-15 %, 25 C, no ageing):
+*   10u 0603 X5R 10V CL10A106KP8NNNC : V0=3.65 -> 55 % at 3.3 V, 35 % at 5 V
+*   1u  0402 X5R 25V CL05A105KA5NQNC : V0=4.04 -> 60 % at 3.3 V, 40 % at 5 V
+*   100n 0402 X7R 16V CL05B104KO5NNNC: V0=6.6  -> 80 % at 3.3 V, 64 % at 5 V
+* MLCC    : linear C fixed at its value for DC bias VB (rails that sit at one voltage).
+* MLCC_NL : C follows V(t) (used for C12/C13 in the hot-plug bench, where V swings 0..10 V).
+*           Linear 0.2*C0 + behavioural C='expr' for the rest. ngspice's behavioural C can
+*           stall ("timestep too small") once a node sits still for long, which is why the
+*           3V3 rail always uses the linear form.
+.subckt MLCC p n params: C0=1u V0=1e6 ESR=10m ESL=0.4n VB=3.3
+L1 p a {ESL}
+R1 a b {ESR}
+C1 b n {C0/(1+VB*VB/(V0*V0))}
+.ends MLCC
+.subckt MLCC_NL p n params: C0=1u V0=1e6 ESR=10m ESL=0.4n
+L1 p a {ESL}
+R1 a b {ESR}
+C1 b n {0.2*C0}
+C2 b n C='C0/(1+V(b,n)*V(b,n)/(V0*V0)) - 0.2*C0'
+.ends MLCC_NL
+.subckt C10U0603 p n params: VB=3.3
+X1 p n MLCC C0=10u V0=3.65 ESR=5m ESL=0.5n VB={VB}
+.ends
+.subckt C1U0402 p n params: VB=3.3
+X1 p n MLCC C0=1u V0=4.04 ESR=10m ESL=0.3n VB={VB}
+.ends
+.subckt C100N0402 p n params: VB=3.3
+X1 p n MLCC C0=100n V0=6.6 ESR=20m ESL=0.3n VB={VB}
+.ends
+.subckt C10U0603_NL p n
+X1 p n MLCC_NL C0=10u V0=3.65 ESR=5m ESL=0.5n
+.ends
+.subckt C100N0402_NL p n
+X1 p n MLCC_NL C0=100n V0=6.6 ESR=20m ESL=0.3n
+.ends

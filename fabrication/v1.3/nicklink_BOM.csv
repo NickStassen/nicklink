@@ -1,17 +1,25 @@
 Comment,Designator,Footprint,LCSC Part #,Notes,Assemble
-100n,"C1,C2,C3,C4,C6,C9,C13,C14,C15",C_0402_1005Metric,C1525,"C1: VDD pin 1/VBAT decoupling; C2: VDD pin 24 decoupling; C3: VDD pin 36 decoupling; C4: VDD pin 48 decoupling; C6: VDDA; C13: USBLC6 VBUS decoupling; C14,C15: IMU VDD/VDDIO",SMD yes
-10k,"R1,R8,R10",R_0402_1005Metric,C25744,R1: BOOT0 pull-down; R8: BOOT1 pull-down; R10: IMU INT1 isolation,SMD yes
-10u,"C5,C12",C_0603_1608Metric,C19702,C5: 3V3 bulk; C12: LDO input + VBUS hot-plug bulk (USB allows <= 10 uF),SMD yes
+0.5A,F1,Fuse_0805_2012Metric,C22435898,"LUTE 0805L050/16XR; 5V pin short / reverse-supply limit: Ihold 0.5 A, Itrip 1 A, 16 V",SMD yes
+100n,"C1,C2,C3,C6,C9,C13,C14,C15",C_0402_1005Metric,C1525,"C1: VDD pin 1/VBAT decoupling; C2: VDD pin 24 decoupling; C3: VDD pin 36 decoupling; C6: VDDA; C13: USBLC6 VBUS decoupling; C14,C15: IMU VDD/VDDIO",SMD yes
+10k,"R1,R10",R_0402_1005Metric,C25744,R1: BOOT0 pull-down; R10: IMU INT1 isolation,SMD yes
+10k,R8,R_0402_1005Metric_NoSilk,C25744,BOOT1 pull-down,SMD yes
 120R@100MHz,FB1,L_0402_1005Metric,C85812,,SMD yes
 15p,"C10,C11",C_0402_1005Metric,C1548,C0G; crystal CL 12 pF,SMD yes
-1N5819WS,D2,D_SOD-323,C191023,Blocks back-feed from the 5V header pin into USB,SMD yes
-1k5,"R2,R3,R6",R_0402_1005Metric,C25867,R2: USB FS D+ pull-up,SMD yes
+1N5819WS,D2,D_SOD-323,C191023,Blocks back-feed from VSYS / the 5V pin into USB,SMD yes
+1R,R12,R_0805_2012Metric,C873764,"YAGEO SR0805FR-471RL; Hot-plug damping (anti-surge, 500 mW)",SMD yes
+1k5,R3,R_0402_1005Metric,C25867,,SMD yes
 1u,"C7,C8",C_0402_1005Metric,C52923,C7: VDDA; C8: LDO output,SMD yes
+2k2,R2,R_0402_1005Metric,C25879,"USB FS D+ pull-up (with R11: 1.5k to 3.4 V, VBUS-derived)",SMD yes
+330,R6,R_0402_1005Metric,C25104,~1.2-1.8 mA (PC13 sinks <= 3 mA),SMD yes
 4k7,"R7,R9",R_0402_1005Metric,C25900,R7: I2C1 SCL pull-up; R9: I2C1 SDA pull-up,SMD yes
-5k1,"R4,R5",R_0402_1005Metric,C25905,,SMD yes
+4k7,R11,R_0402_1005Metric_NoSilk,C25900,D+ pull-up divider; VBUS bleed,SMD yes
+4u7,"C4,C12",C_0402_1005Metric,C23733,C4: VDD3 (pin 48) bulk: DS5319 Fig. 14 requires 4.7 uF on VDD3; C12: LDO input (10 V X5R; USB allows <= 10 uF),SMD yes
+5k1,R4,R_0402_1005Metric,C25905,,SMD yes
+5k1,R5,R_0402_1005Metric_NoSilk,C25905,,SMD yes
 8MHz,Y1,Crystal_SMD_3225-4Pin_3.2x2.5mm,C2682775,YXC X32258MOB4SI (CL 12 pF),SMD yes
 BOOT0,SW2,SW_SPST_B3U-1000P_NoSilk,C231329,Hold while resetting to enter the USART1 system bootloader,SMD yes
 Conn_02x10_Odd_Even,"J1,J3",PinHeader_2x10_P2.54mm_Vertical_NoSilk,,hand-solder THT,THT hand
+DMP2165UW,Q1,SOT-323_SC-70_NoSilk,C388477,Diodes DMP2165UW-7; 5V pin reverse-polarity switch (gate to GND),SMD yes
 GREEN,D3,LED_0402_1005Metric,C74338,"Everlight 16-213/GHC-YR1S1/3T; User LED, PC13 low = on",SMD yes
 LSM6DSV16X,U4,LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y_NoSilk,C5267406,ST LSM6DSV16XTR,SMD yes
 RED,D1,LED_0402_1005Metric,C264407,Everlight 16-213/R6C-AQ2R2B/3T; Power,SMD yes

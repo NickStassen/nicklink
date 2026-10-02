@@ -584,6 +584,10 @@
     "netclass_patterns": [
       {
         "netclass": "Power",
+        "pattern": "/VBUS_D"
+      },
+      {
+        "netclass": "Power",
         "pattern": "+3.3V"
       },
       {
@@ -597,6 +601,14 @@
       {
         "netclass": "Power",
         "pattern": "+5V"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "/VSYS"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "/5V_F"
       },
       {
         "netclass": "Ground",
