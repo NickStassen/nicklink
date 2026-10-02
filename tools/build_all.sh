@@ -9,7 +9,7 @@ W=tools/_work
 tools/sch.sh
 tools/place.sh
 mkdir -p $W/st
-cp nicklink.kicad_pro nicklink.kicad_sch fp-lib-table sym-lib-table nicklink.kicad_sym $W/st/ && rm -rf $W/st/nicklink.pretty && cp -r nicklink.pretty $W/st/
+cp nicklink.kicad_pro nicklink.kicad_dru nicklink.kicad_sch fp-lib-table sym-lib-table nicklink.kicad_sym $W/st/ && rm -rf $W/st/nicklink.pretty && cp -r nicklink.pretty $W/st/
 n=0
 until
   n=$((n + 1))

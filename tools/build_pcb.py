@@ -210,7 +210,6 @@ def silk(board):
     fab_refs(board)
 
     # Front pin labels: rotated text in the strips either side of each header column.
-    off = 1.27 + P.LBL / 2 - 0.06  # nudge outer/inner labels toward the header body for edge clearance
     for ref, outer_odd in (("J3", True), ("J1", False)):
         x0, y0 = P.PLACE[ref][:2]
         for pin, net in spec.PARTS[ref][3].items():
@@ -219,10 +218,14 @@ def silk(board):
             px = x0 + 2.54 * col
             is_outer = (col == 0) == outer_odd
             side = -1 if (ref == "J3") == is_outer else 1
-            text(board, short(net), px + side * off, y0 + 2.54 * row, pcbnew.F_SilkS, h=0.8, w=0.7, angle=90)
+            a = px - 1.27 - P.LBL if side < 0 else px + 1.27  # strip's left boundary
+            # rotated glyph ink spans -0.668..+0.53 mm about the anchor: 0.83 mm keeps the
+            # left board edge >= 0.15 mm clear; 0.70 mm fits every other strip
+            cx = a + (0.83 if ref == "J3" and is_outer else 0.70)
+            text(board, short(net), cx, y0 + 2.54 * row, pcbnew.F_SilkS, h=1.0, w=0.7, angle=90)
 
     for s, x, y, a, j in P.LABELS:
-        text(board, s, x, y, pcbnew.F_SilkS, h=0.8, w=0.62 if a == 0 else 0.7, angle=a, just=j)
+        text(board, s, x, y, pcbnew.F_SilkS, h=1.0, w=0.62 if a == 0 else 0.7, angle=a, just=j)
     for x, y, r in P.SILK_DOTS:
         d = pcbnew.PCB_SHAPE(board, pcbnew.SHAPE_T_CIRCLE)
         d.SetCenter(V(x, y)); d.SetEnd(V(x + r / 2, y))
@@ -231,14 +234,19 @@ def silk(board):
 
     # Back: function cheat sheet + name.
     lines = [
-        "STM32F103C8 8MHz",
         "A9 TX1   A10 RX1", "A13 SWDIO A14 SWCLK", "B3 SWO   RST NRST",
-        "B6 SCL1  B7 SDA1", "A5 SCK1  A6 MISO1", "A7 MOSI1 B2 BOOT1", "B8 CANRX B9 CANTX",
-        "C13 LED (low=on)", "5V: USB out/<=5.5V in", "3V3 out: 250 mA max",
-    ] + [f"IMU {spec.PARTS['U4'][1]} 0x6A", "I2C1 B6/B7, INT1 A0"] * ("U4" in spec.PARTS)
+        "B6 SCL1  B7 SDA1", "A5 SCK1  A6 MISO1", "A7 MOSI1  B2 BOOT1",
+        "B8 CANRX  B9 CANTX", "C13 LED, low = on", "5V max 5.5V, 3V3 250mA",
+    ] + ["IMU 0x6A  INT1 = A0"] * ("U4" in spec.PARTS)
     for i, s in enumerate(lines):
-        text(board, s, P.c, 8.3 + 1.25 * i, pcbnew.B_SilkS, h=0.8, w=0.7)
-    text(board, f"NickLink v{spec.REV}", P.c, P.H - 2.0, pcbnew.B_SilkS, h=1.0, w=0.8)
+        text(board, s, P.c, 7.9 + 1.4 * i, pcbnew.B_SilkS, h=1.0, w=0.7)
+    text(board, f"NickLink v{spec.REV}", P.c, P.H - 1.6, pcbnew.B_SilkS, h=1.2, w=0.9)
+
+    # JLC minimum silkscreen line width is 0.15 mm (KiCad library footprints use 0.12)
+    for fp in board.GetFootprints():
+        for g in fp.GraphicalItems():
+            if g.GetLayer() in (pcbnew.F_SilkS, pcbnew.B_SilkS) and g.Type() == pcbnew.PCB_SHAPE_T and 0 < g.GetWidth() < mm(0.15):
+                g.SetWidth(mm(0.15))
 
 
 def dump(board, path):

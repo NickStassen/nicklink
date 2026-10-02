@@ -4,8 +4,8 @@ v1.3 adds an on-board 6-axis IMU for motion tracking, robotics and tap-activated
 
 | | v1.2 | v1.3 |
 |---|---:|---:|
-| Outline | 33.19 × 25.5 mm (846 mm²) | **33.19 × 28.8 mm (956 mm²)** |
-| vs v1.1 (1122 mm²) | −25% | **−15%** |
+| Outline | 33.19 × 25.5 mm (846 mm²) | **33.99 × 25.5 mm (867 mm²)** |
+| vs v1.1 (1122 mm²) | −25% | **−23%** |
 | Parts | 33 | 38 |
 
 **IMU circuit** (ST LSM6DSV16X, LGA-14 2.5 × 3 mm, LCSC C5267406):
@@ -23,14 +23,21 @@ v1.3 adds an on-board 6-axis IMU for motion tracking, robotics and tap-activated
 The connections were checked against datasheet DS13510 (see `tools/imu_research.md`). The schematic uses a project symbol (`nicklink.kicad_sym`) with the LSM6DSM pinout, which is identical, and pin types set for I2C use.
 
 **Placement and routing**
-- The IMU sits on the top side, at the bottom centre between the bottom mounting holes, below the crystal. That is away from the LDO's heat (gyro bias drift) and from USB cable strain.
-- It is rotated so SCL/SDA/CS face the I2C side and VDDIO/GND face their caps. Only the pins strapped to GND and INT1 face the board edge.
+- The IMU sits on the top side, in the right channel between the MCU and J1, below the RESET button. Its caps go in a row underneath, the ferrite moves into the MCU's bottom-right courtyard notch, the 10 µF bulk cap moves to the top-left pocket, and the I2C pull-ups sit beside PB6/PB7. An earlier draft added a 3.3 mm bottom row for the IMU; this layout fits it into existing gaps instead, so the board stays at v1.2's height.
+- The position is away from the LDO's heat (gyro bias drift) and from USB cable strain.
+- Orientation: pin 1 (SA0) is top-left. The VDDIO/GND row faces its caps below, and all SMD bodies stay ≥ 1 mm from the board edge.
 - A top-copper keep-out covers the area inside the IMU's pad ring, per ST's LGA guidance: no tracks, vias or pour under the package.
-- **Deviation:** ST suggests about 10 mm from screws. Here it is about 5 mm, because the board is 28.8 mm tall. Mount without over-tightening.
+- **Deviation:** ST suggests about 10 mm from screws. Here it is about 5 mm (H4), because the board is only 25.5 mm tall. Mount without over-tightening.
 - **Crystal nets are now pre-routed** as locked top-layer tracks (HSE_IN 8.1 mm, HSE_OUT 5.1 mm, no vias), so autoroute variation can't push them onto vias.
 - **ESD channels swapped:** USB D+ uses the USBLC6's I/O2 channel and D− uses I/O1. The two channels are identical, and this order means D+ and D− no longer cross at the MCU. USB D+/D− are about 11 / 10 mm.
 - **Minimum track width lowered from 0.13 mm to 0.10 mm.** This covers Freerouting's 0.112 mm neck-downs at fine-pitch pads, which are within JLC's standard 2-layer capability. The default 0.15 mm signal width is unchanged.
-- A few small passives near the USB connector carry ±0.1 mm offsets, found by a seeded search (`NICKLINK_SEED`). Freerouting's result is very sensitive to placement, and these offsets give 100% routing with short crystal and USB nets.
+- Sixteen small parts (passives near USB, the I2C pull-ups, the IMU, its caps and RESET) carry ≤ 0.1 mm offsets, found by a seeded search (`NICKLINK_SEED=13`). Freerouting's result is very sensitive to placement, and these offsets give 100% routing with short crystal and USB nets.
+
+**JLCPCB rules** (README, "JLCPCB design rules"): v1.3 is checked against JLC's published limits via the board setup and `nicklink.kicad_dru`. Changes made to comply:
+- USB4085 pads enlarged to a 0.18 mm annular ring.
+- Edge clearance raised to 0.3 mm (Economic PCBA).
+- Silkscreen text 1.0 mm tall and lines 0.15 mm wide. The label strips grew from 1.2 to 1.4 mm, which adds 0.8 mm of board width.
+- Silk-to-pad clearance 0.15 mm and a 0.10 mm minimum solder-mask web.
 
 **Verification** (KiCad 10.0.6): ERC 0 errors / 0 warnings; DRC 0 violations, 0 unconnected, 0 schematic-parity issues (`checks/`).
 
@@ -67,7 +74,7 @@ The board is now exactly as tall as the headers (25.4 mm body + edge clearance).
 - The 3.0 × 2.5 mm Omron B3U buttons sit in the side channels between the MCU and the headers. Traces pass between their pads and underneath on the bottom layer.
 - The project-local USB4085 courtyard is now the shield pads + 0.25 mm. Before, it was about 0.3 mm wider per side than the copper.
 
-**Front labels** (requested): the header plastic covers its whole footprint, so labels sit in 1.2 mm strips beside each pin column. The text is 0.8 mm tall, rotated, in short form (`A9`, `B12`, `RST`). This costs about 3.2 mm of width compared with a label-free layout and is the main reason v1.2 isn't narrower. The project copies of the header and button footprints have no silkscreen so the labels fit; their copper is unchanged from KiCad's library.
+**Front labels** (requested): the header plastic covers its whole footprint, so labels sit in strips beside each pin column (v1.2: 1.2 mm strips, 0.8 mm text; v1.3: 1.4 mm strips, 1.0 mm text for JLC). The text is rotated, in short form (`A9`, `B12`, `RST`). This costs about 3.2 mm of width compared with a label-free layout and is the main reason v1.2 isn't narrower. The project copies of the header and button footprints have no silkscreen so the labels fit; their copper is unchanged from KiCad's library.
 
 **Quality-of-life fixes**
 - **5 V on J1.1:** USB VBUS → 1N5819WS → 5V rail. The diode lets the 5V pin act as an input without back-feeding the USB host. Input must stay ≤ 5.5 V (TLV755 maximum).

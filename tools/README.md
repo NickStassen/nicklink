@@ -8,6 +8,7 @@ NickLink v1.2 is generated, not hand-edited. Change the inputs below, then rebui
 |---|---|
 | `spec.py` | Parts, values, footprints, pin→net map, header pinout, LCSC numbers. Single source of truth. |
 | `placement.py` | Board size, label-strip geometry, every part's position/rotation, front part labels. |
+| `board_template.kicad_pcb` | Board setup only (stackup, solder-mask web, plot settings) for `build_pcb.py`. |
 | `gen_sch.py` | Schematic layout (block positions in its `LAYOUT` table). |
 
 ## Pipeline
@@ -23,7 +24,8 @@ tools/fab.sh         # gerbers, drills, BOM/CPL, PDFs, renders, checks/
 | `place.sh` | Runs `build_pcb.py`: footprints, nets and symbol links from the netlist, outline, GND pours, silkscreen (front pin labels, back cheat sheet). Also writes `_work/placed.png`, a placement preview with courtyard-overlap check and ratsnest length (`preview.py`). |
 | `autoroute.sh` | Exports a Specctra DSN, runs Freerouting headless, imports the SES and refills the pours. Existing tracks are kept as fixed. |
 | `stitch.py` | Adds GND stitching vias wherever both pours have room, then drops any via that ends up on isolated copper. |
-| `drc.sh` | `kicad-cli pcb drc` with schematic parity; exits nonzero on any violation. |
+| `drc.sh` | `kicad-cli pcb drc` with schematic parity; exits nonzero on any violation. JLCPCB limits come from the board setup plus `nicklink.kicad_dru`. |
+| `route_try.sh` | One placement variant end to end (place, route, stitch, DRC) for the seed search. |
 | `render.sh` | 3D top/bottom renders plus 2D layer plots (`svg2png.py`). |
 | `compare.py` | Any number of boards side by side at a fixed physical scale (px/mm), e.g. `docs/images/compare.png`. Outline-only entries are allowed for boards without files. |
 | `pinout.py` | Writes `docs/pinout.csv` from `spec.py` and prints the README pinout table. |
@@ -37,7 +39,7 @@ tools/fab.sh         # gerbers, drills, BOM/CPL, PDFs, renders, checks/
 ## Routing notes
 
 - `placement.py` `PREROUTE` holds locked tracks laid before autorouting (currently the crystal nets), so the critical nets don't depend on Freerouting.
-- Freerouting's result is very sensitive to placement. If a placement change leaves nets unrouted, try `NICKLINK_SEED=<n> tools/place.sh tools/_work/s<n>` for a few seeds: it nudges small top-area parts by ±0.1 mm. Autoroute each candidate and bake the offsets of a clean one into `PLACE`.
+- Freerouting's result is very sensitive to placement. If a placement change leaves nets unrouted, run a few `tools/route_try.sh s<n> "" <n>` in parallel (at most about 4, since each Freerouting JVM needs a few GB of RAM). Each one nudges small parts by up to ±0.1 mm (`NICKLINK_SEED`), then routes, stitches and runs DRC. Bake the offsets of a clean seed into `PLACE`; the current layout uses seed 13.
 - `build_all.sh` retries the route, stitch and DRC step (`TRIES`, default 3) because Freerouting's optimizer is time-limited.
 
 ## Typical edits
