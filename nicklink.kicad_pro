@@ -594,6 +594,10 @@
         "pattern": "VBUS"
       },
       {
+        "netclass": "Power",
+        "pattern": "+5V"
+      },
+      {
         "netclass": "Ground",
         "pattern": "GND"
       }

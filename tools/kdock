@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Run a command in the KiCad 10 container with the repo mounted at its host path
+# (so host paths work unchanged inside) and tools/3dmodels as the 3D model dir.
+# Usage: tools/kdock kicad-cli ... | tools/kdock python3 script.py ...
+set -euo pipefail
+tools="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo="$(dirname "$tools")"
+mkdir -p "$tools/3dmodels"
+# HOME=/tmp: the image's /home/kicad is owned by uid 1000, so kicad-cli/pcbnew
+# can't write their config there when run as the host user.
+exec docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
+  -v "$repo:$repo" -w "$PWD" \
+  -v "$tools/3dmodels:/usr/share/kicad/3dmodels:ro" -e KICAD10_3DMODEL_DIR=/usr/share/kicad/3dmodels \
+  "${KICAD_IMAGE:-kicad/kicad:10.0}" "$@"
