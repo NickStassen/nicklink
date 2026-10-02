@@ -27,7 +27,7 @@ tools/fab.sh         # gerbers, drills, BOM/CPL, PDFs, renders, checks/
 | `drc.sh` | `kicad-cli pcb drc` with schematic parity; exits nonzero on any violation. JLCPCB limits come from the board setup plus `nicklink.kicad_dru`. |
 | `route_try.sh` | One placement variant end to end (place, route, stitch, DRC) for the seed search. |
 | `render.sh` | 3D top/bottom renders plus 2D layer plots (`svg2png.py`). |
-| `compare.py` | Any number of boards side by side at a fixed physical scale (px/mm), e.g. `docs/images/compare.png`. Outline-only entries are allowed for boards without files. |
+| `compare.py` | Any number of boards side by side at a fixed physical scale (px/mm), e.g. `docs/images/compare-v1.1-v1.2-v1.3.png`. Outline-only entries are allowed for boards without files. |
 | `pinout.py` | Writes `docs/pinout.csv` from `spec.py` and prints the README pinout table. |
 | `netreport.py` | Per-net length per layer and via count (check USB/HSE routing). |
 | `build_pcb.py --resilk` | Redraws only the silkscreen on an already-routed board. Use it for label tweaks without re-routing. |

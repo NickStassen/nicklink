@@ -4,7 +4,13 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 
 ![NickLink v1.3 — component side](docs/images/top.png)
 
-![v1.1, v1.2 and v1.3 at the same scale](docs/images/compare.png)
+![v1.1, v1.2 and v1.3 at the same scale](docs/images/compare-v1.1-v1.2-v1.3.png)
+
+<details><summary>True size on a 27-inch 1440p monitor (view at 100% zoom)</summary>
+
+![v1.1, v1.2 and v1.3 at true size on a 27-inch 1440p monitor](docs/images/compare-v1.1-v1.2-v1.3-true-size-27in-1440p.png)
+
+</details>
 
 ## What changed
 
@@ -19,22 +25,25 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 - **User LED:** R6 is 330 Ω: about 1.3 mA instead of 0.4 mA, still within PC13's 3 mA sink limit.
 - **Routing:** locked tracks for the USB-C orientation ties and the IMU's 3V3 feed. Every GND pad and pour island is checked for connection.
 
-**v1.2** changes from v1.1:
+**Revision comparison:**
 
-| | v1.1 | v1.2 → v1.3 |
-|---|---|---|
-| Outline | 34 × 33 mm (1122 mm²) | **v1.2: 33.19 × 25.5 mm (846 mm², −25%)**; v1.3: 33.99 × 25.5 mm (867 mm², −23%) |
-| Pin labels | Numbered table on the back | **Name beside every pin on the front**; function cheat sheet on the back |
-| 5 V on the headers | None | **J1.1 = 5 V** (USB VBUS through a Schottky; also a 5 V input) |
-| Reset | Header pin only | **RESET button** + NRST on J3 next to SWD |
-| Boot | BOOT0 slide switch | **BOOT button** (hold BOOT, tap RESET) |
-| SWD | Split across J1 and J3 | **All on J3**: 3V3, GND, SWDIO, SWCLK, SWO, NRST |
-| HSE crystal | 16 MHz | **8 MHz** (matches Blue Pill / STM32duino / CubeMX defaults) |
-| Regulator | AMS1117-3.3 (SOT-223) + 22 µF tantalum | v1.2: **TLV75533** (2×2 mm WSON) + ceramics; v1.3: **TLV76733**, same package, input rated to 18 V |
-| USB ESD | None | **USBLC6-2P6** on D+/D− and VBUS |
-| I2C pull-ups | 1.5 kΩ fitted on PB6/PB7 | v1.2: removed; **v1.3: 4.7 kΩ** (needed by the on-board IMU) |
-| LEDs | Power | Power + **user LED on PC13** (low = on) |
-| IMU | — | **v1.3: LSM6DSV16X** 6-axis accel + gyro with on-chip sensor fusion |
+| | v1.1 | v1.2 | v1.3 |
+|---|---|---|---|
+| Outline | 34 × 33 mm (1122 mm²) | **33.19 × 25.5 mm** (846 mm², −25%) | **33.99 × 25.5 mm** (867 mm², −23%) |
+| Pin labels | Numbered table on the back | **Name beside every pin on the front**; cheat sheet on the back | Same; 1.0 mm text (JLC minimum) |
+| 5 V on the headers | None | **J1.1 = 5 V** (USB VBUS through a Schottky; also a 5 V input) | Same, plus a **0.5 A polyfuse and reverse-polarity protection** |
+| USB power path | VBUS straight to the regulator | Schottky | **1 Ω hot-plug damping** + Schottky |
+| Regulator | AMS1117-3.3 (SOT-223) + 22 µF tantalum | **TLV75533** (2×2 mm WSON) + ceramics | **TLV76733**, same package, input rated to 18 V |
+| Reset | Header pin only | **RESET button** + NRST on J3 next to SWD | Same |
+| Boot | BOOT0 slide switch | **BOOT button** (hold BOOT, tap RESET) | Same |
+| SWD | Split across J1 and J3 | **All on J3**: 3V3, GND, SWDIO, SWCLK, SWO, NRST | Same |
+| HSE crystal | 16 MHz | **8 MHz** (matches Blue Pill / STM32duino / CubeMX defaults) | Same |
+| USB D+ pull-up | 1.5 kΩ to 3V3 | 1.5 kΩ to 3V3 | **From VBUS** (2.2k/4.7k), so no back-feed when powered from J1.1 |
+| USB ESD | None | **USBLC6-2P6** on D+/D− and VBUS | Same |
+| I2C pull-ups | 1.5 kΩ fitted on PB6/PB7 | Removed | **4.7 kΩ** (needed by the on-board IMU) |
+| LEDs | Power | Power + **user LED on PC13** (low = on) | Same, brighter (330 Ω, about 1.3 mA) |
+| IMU | — | — | **LSM6DSV16X** 6-axis accel + gyro with on-chip sensor fusion |
+| Verification | — | DRC/ERC | DRC/ERC, SPICE benches ([`sim/`](sim/)), emulated test firmware ([`firmware/`](firmware/)) |
 
 ## Hardware
 
