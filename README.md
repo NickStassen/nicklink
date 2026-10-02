@@ -1,6 +1,6 @@
 # NickLink v1.3
 
-NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 is a **34.0 × 25.5 mm, two-layer PCB** with an on-board **6-axis IMU (ST LSM6DSV16X)** for motion tracking, robotics and tap-to-wake projects. It also has two **2×10, 2.54 mm headers**, **four M2 mounting holes**, USB-C, RESET and BOOT buttons, a user LED, and **every header pin labelled on the front silkscreen**.
+NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 is a **34.0 × 25.5 mm, two-layer PCB** with an on-board **6-axis IMU (ST LSM6DSV)** for motion tracking, robotics and tap-to-wake projects. It also has two **2×10, 2.54 mm headers**, **four M2 mounting holes**, USB-C, RESET and BOOT buttons, a user LED, and **every header pin labelled on the front silkscreen**.
 
 ![NickLink v1.3 — component side](docs/images/top.png)
 
@@ -42,7 +42,7 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 | USB ESD | None | **USBLC6-2P6** on D+/D− and VBUS | Same |
 | I2C pull-ups | 1.5 kΩ fitted on PB6/PB7 | Removed | **4.7 kΩ** (needed by the on-board IMU) |
 | LEDs | Power | Power + **user LED on PC13** (low = on) | Same, brighter (330 Ω, about 1.3 mA) |
-| IMU | — | — | **LSM6DSV16X** 6-axis accel + gyro with on-chip sensor fusion |
+| IMU | — | — | **LSM6DSV** 6-axis accel + gyro with on-chip sensor fusion |
 | Verification | — | DRC/ERC | DRC/ERC, SPICE benches ([`sim/`](sim/)), emulated test firmware ([`firmware/`](firmware/)) |
 
 ## Hardware
@@ -52,7 +52,7 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 - Power path: USB VBUS → R12 1 Ω (hot-plug damping) → 1N5819WS Schottky → **VSYS** → TLV76733 LDO → **3V3** (J3.1, J1.20). VSYS also reaches the **5V pin** (J1.1) through a 0.5 A polyfuse (F1) and a reverse-polarity P-MOSFET (Q1). The Schottky stops a supply on the 5V pin from back-feeding the USB host.
 - RESET button (NRST to GND, 100 nF), BOOT button (BOOT0 to 3V3, 10 kΩ pull-down), 10 kΩ pull-down on PB2/BOOT1.
 - Red power LED, green user LED on PC13 (active low).
-- **IMU:** ST LSM6DSV16X 6-axis accelerometer and gyroscope on I2C1 (PB6 SCL / PB7 SDA, address **0x6A**), INT1 to PA0.
+- **IMU:** ST LSM6DSV 6-axis accelerometer and gyroscope on I2C1 (PB6 SCL / PB7 SDA, address **0x6A**), INT1 to PA0.
 - 33 GPIO + NRST on the headers. Only PA11/PA12 (USB) and PD0/PD1 (crystal) are not broken out.
 - GND pours on both layers, stitched with vias.
 
@@ -94,7 +94,7 @@ Pins not marked "3.3 V only" are 5 V tolerant (FT) while the board is powered. B
 
 ## IMU
 
-The LSM6DSV16X is a 6-axis IMU: accelerometer up to ±16 g, gyroscope up to ±4000 dps.
+The LSM6DSV is a 6-axis IMU: accelerometer up to ±16 g, gyroscope up to ±4000 dps.
 - **Address:** I2C1 at 0x6A (SA0 tied low); CS is tied high for I2C mode.
 - **Interrupt:** INT1 goes to PA0. PA0 is also the STM32's WKUP pin, so a tap or motion interrupt (rising edge) can wake the MCU from Standby.
 
@@ -102,7 +102,9 @@ Features useful here:
 - **On-chip sensor fusion (SFLP):** outputs a game rotation vector (quaternion) at 15–480 Hz through the FIFO. The F103 has no hardware floating point, so this saves it doing the orientation math.
 - **Hardware event detection:** tap, double-tap, wake-up, free-fall and 6D-orientation events, routable to INT1 (MD1_CFG 5Eh, with INTERRUPTS_ENABLE set in FUNCTIONS_ENABLE 50h). This covers tap-activated projects without polling.
 
-Firmware starting points: ST's `lsm6dsv16x-pid` platform-independent driver and the STM32duino `STM32duino-LSM6DSV16X` library. Bring-up check: WHO_AM_I (0Fh) should read **0x70**.
+Firmware starting points: ST's LSM6DSV platform-independent C driver, or the LSM6DSV16X one (`lsm6dsv16x-pid`) restricted to features the LSM6DSV has. Bring-up check: WHO_AM_I (0Fh) should read **0x70**.
+
+**Why the LSM6DSV and not the LSM6DSV16X:** v1.3 was designed around the LSM6DSV16X (C5267406), but JLC lists that part as "Standard PCBA only" (X-ray inspection), and NickLink is an Economic PCBA board. The LSM6DSV (C41785564, which JLC lists as "LSM6DSVETR" and allows on Economic PCBA) is its sibling in the same LGA-14 package, with the same pinout, I2C-mode wiring, register map, WHO_AM_I and SFLP fusion. It lacks the LSM6DSV16X's machine-learning core, Qvar electrostatic sensing and analog hub. None of these is used here: Qvar and the analog hub need pins 2/3, which are tied to GND. The board and the test firmware are unchanged. ST's own store lists the part as LSM6DSV/LSM6DSVTR, so the "LSM6DSVETR" code is JLC's/LCSC's; confirm WHO_AM_I and SFLP output on the first boards.
 
 Placement follows ST's LGA guidance: the IMU sits on the top side, with no ground pour or vias under the package, and only short pad-to-pad links at its edges. The local wiring is pre-routed; see docs/REVIEW.md. It sits in the right channel beside the MCU, below the RESET button, away from the regulator's heat and USB cable strain. ST's guidance of about 10 mm from screws (in its MEMS layout notes) can't be met on a board this small; H4 is about 2.4 mm from the IMU body. Mount on standoffs without over-tightening, since board flex shows up as accelerometer offset.
 
@@ -168,16 +170,16 @@ The board is checked against JLCPCB's published 2-layer and assembly limits ([PC
 
 **Ordering:**
 - Under 70 × 70 mm, so order **Economic PCBA**. Economic needs no on-board fiducials or rails. JLC can add edge rails and fiducials if you choose Standard or panelize; on-board fiducials would need 3.85 mm from the edge.
-- Choose an **ENIG** finish: the 0.5 mm-pitch LGA and LQFP solder more reliably on a flat pad than on HASL.
-- The CPL rotations are corrected for JLC's footprints (`JLC_ROT` in `tools/fab.sh`: LQFP-48 −90°; SOT-666, LGA-14 and SOT-323 +180°). Still check the pin-1 marks in JLC's placement preview.
-- The through-hole parts (USB-C, headers) are hand-soldered. The USB-C GND pins use thermal reliefs to make that easier.
+- Choose an **ENIG** finish: the 0.5 mm-pitch LGA and LQFP solder more reliably on a flat pad than on HASL. On Economic PCBA, 1.6 mm ENIG comes only with **green** solder mask. Avoid black or white anyway: JLC only keeps a mask bridge between pads 0.13 mm or more apart on those colours (0.10 mm on green), and the USB-C pads are 0.11 mm apart.
+- The CPL is in Gerber coordinates, so JLC aligns it to the board without an "offset" prompt. Its rotations and positions are corrected per LCSC part for JLC's own footprints (`JLC_ROT`/`JLC_OFS` in `tools/fab.sh`: LQFP-48 −90°; SOT-666 and SOT-323 +180°; the 2×10 headers −90° and centred; USB4085 origin offset). Still check the pin-1 marks in JLC's placement preview.
+- JLC also assembles the through-hole parts (USB-C, headers; wave soldered), so the BOM has one line per LCSC part, THT included. The USB-C GND pins use thermal reliefs, which also helps if you ever hand-solder a replacement.
 - Signal tracks, and VBUS_D (USB power) under H1, pass under the M2 screw heads (under solder mask, vias tented). Use plastic standoffs or washers if you clamp with metal hardware.
 
 ## Validation and fabrication
 
 KiCad 10.0.6: **0 DRC violations, 0 unconnected items, 0 schematic-parity issues, 0 ERC errors or warnings** (reports in [`checks/`](checks/)). Every pin in the schematic netlist is checked against `tools/spec.py`. These checks cover connectivity and geometry. This revision has not been built yet; it needs a prototype and bench testing.
 
-The BOM carries verified LCSC part numbers for JLCPCB SMD assembly. To order, upload `fabrication/v1.3/nicklink_gerbers.zip`, then for assembly `nicklink_BOM_JLC.csv` (SMD parts only) and `nicklink_CPL.csv`. The USB-C connector and pin headers are through-hole parts to hand-solder. Several parts are JLC "Extended" parts, which add a per-part loading fee; see [`tools/parts_research.md`](tools/parts_research.md).
+The BOM carries verified LCSC part numbers for every part, through-hole included. To order, upload `fabrication/v1.3/nicklink_gerbers.zip`, then for assembly `nicklink_BOM_JLC.csv` and `nicklink_CPL.csv`. Several parts are JLC "Extended" parts, which add a per-part loading fee; see [`tools/parts_research.md`](tools/parts_research.md).
 
 Bring-up:
 
@@ -214,7 +216,7 @@ Bring-up:
 - [ST AN2586 — hardware design](https://www.st.com/resource/en/application_note/an2586-getting-started-with-stm32f10xxx-hardware-development-stmicroelectronics.pdf)
 - [ST AN2867 — oscillator design](https://www.st.com/resource/en/application_note/an2867-guidelines-for-oscillator-design-on-stm8afals-and-stm32-mcusmpus-stmicroelectronics.pdf)
 - [TI TLV767 datasheet](https://www.ti.com/lit/ds/symlink/tlv767.pdf) (U2 from v1.3); [TLV755P](https://www.ti.com/lit/ds/symlink/tlv755p.pdf) (v1.2)
-- [ST LSM6DSV16X datasheet](https://www.st.com/resource/en/datasheet/lsm6dsv16x.pdf)
+- [ST LSM6DSV datasheet](https://www.st.com/resource/en/datasheet/lsm6dsv.pdf)
 - [ST USBLC6-2 datasheet](https://www.st.com/resource/en/datasheet/usblc6-2.pdf)
 
 Licensed under the [MIT License](LICENSE).

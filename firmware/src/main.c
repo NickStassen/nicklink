@@ -6,7 +6,7 @@
 #include "regs.h"
 #include "pins.h"
 
-/* Tap/wake tuning knobs (LSM6DSV16X units: tap 1 LSB = FS/32 = 62.5 mg at +-2 g, wake 1 LSB = 7.8 mg) */
+/* Tap/wake tuning knobs (LSM6DSV units, same as LSM6DSV16X: tap 1 LSB = FS/32 = 62.5 mg at +-2 g, wake 1 LSB = 7.8 mg) */
 #define TAP_THS  8      /* 0.5 g */
 #define WAKE_THS 32     /* 0.25 g */
 #define TAP_DUR  0x7A   /* DUR=7 (double-tap window), QUIET=2, SHOCK=2 */
@@ -202,7 +202,7 @@ void EXTI0_IRQHandler(void) { EXTI_PR = 1; int1_pending++; }
 static int imu_init(void) {
     int who = imu_rd(0x0F);
     if (who < 0) { printf("IMU: no ACK at 0x%02X on I2C1 (PB6/PB7)\n", IMU_ADDR); return 0; }
-    printf("IMU: WHO_AM_I = 0x%02X %s\n", who, who == 0x70 ? "OK (LSM6DSV16X)" : "UNEXPECTED (want 0x70)");
+    printf("IMU: WHO_AM_I = 0x%02X %s\n", who, who == 0x70 ? "OK (LSM6DSV family)" : "UNEXPECTED (want 0x70)");
     if (who != 0x70) return 0;
     imu_wr(0x12, 0x01);                                         /* CTRL3 SW_RESET */
     for (uint32_t t0 = ticks; (imu_rd(0x12) & 1) && ticks - t0 < 20;) {}
