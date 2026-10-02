@@ -145,7 +145,7 @@
 				)
 			)
 		)
-		(property "Value" "LSM6DSV16X"
+		(property "Value" "LSM6DSV"
 			(at 0 2.2 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -157,7 +157,7 @@
 				)
 			)
 		)
-		(property "Datasheet" "https://www.st.com/resource/en/datasheet/lsm6dsv16x.pdf"
+		(property "Datasheet" "https://www.st.com/resource/en/datasheet/lsm6dsv.pdf"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -191,7 +191,7 @@
 				)
 			)
 		)
-		(property "MPN" "ST LSM6DSV16XTR"
+		(property "MPN" "ST LSM6DSV (JLC: LSM6DSVETR)"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -203,7 +203,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C5267406"
+		(property "LCSC" "C41785564"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -956,6 +956,30 @@
 			(effects
 				(font
 					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
+		(property "MPN" "HanElectricity 2541WV-2x10P (male, 6 mm pins, 3 mm tail)"
+			(at 0 0 180)
+			(layer "F.Fab")
+			(hide yes)
+			(uuid "fbee7a3c-4769-4bec-96d9-defbe59f2e7d")
+			(effects
+				(font
+					(size 1.27 1.27)
+					(thickness 0.15)
+				)
+			)
+		)
+		(property "LCSC" "C5383109"
+			(at 0 0 180)
+			(layer "F.Fab")
+			(hide yes)
+			(uuid "582ecc5a-ba51-40e1-bfbe-3d5470b809a2")
+			(effects
+				(font
+					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -7704,6 +7728,30 @@
 			(effects
 				(font
 					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
+		(property "MPN" "HanElectricity 2541WV-2x10P (male, 6 mm pins, 3 mm tail)"
+			(at 0 0 180)
+			(layer "F.Fab")
+			(hide yes)
+			(uuid "743ff676-913b-4ef3-809e-3a330d9b7d0c")
+			(effects
+				(font
+					(size 1.27 1.27)
+					(thickness 0.15)
+				)
+			)
+		)
+		(property "LCSC" "C5383109"
+			(at 0 0 180)
+			(layer "F.Fab")
+			(hide yes)
+			(uuid "8de8a2c3-f243-46be-8804-6d6dd71a3b91")
+			(effects
+				(font
+					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)

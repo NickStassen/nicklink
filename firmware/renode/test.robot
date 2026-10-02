@@ -63,7 +63,7 @@ User LED Blinks At 1 Hz
 
 IMU WHO_AM_I And Sample
     Start Emulation
-    Wait For Line On Uart     IMU: WHO_AM_I = 0x70 OK (LSM6DSV16X)
+    Wait For Line On Uart     IMU: WHO_AM_I = 0x70 OK (LSM6DSV family)
     Wait For Line On Uart     IMU: 480 Hz
     Wait For Line On Uart     ${PROMPT}
     Execute Command           sysbus.i2c1.imu AccX -16384

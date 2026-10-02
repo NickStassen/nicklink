@@ -90,18 +90,21 @@ PARTS = {
     "D3": ("Device:LED", "GREEN", "LED_SMD:LED_0402_1005Metric", {"1": "USER_LED_K", "2": "+3.3V"}, {"Note": "User LED, PC13 low = on", "MPN": "Everlight 16-213/GHC-YR1S1/3T"}),
     "R6": ("Device:R", "330", "Resistor_SMD:R_0402_1005Metric", {"1": "PC13", "2": "USER_LED_K"}, {"Note": "~1.2-1.8 mA (PC13 sinks <= 3 mA)"}),
 
-    # --- IMU: LSM6DSV16X on I2C1 (address 0x6A), INT1 -> PA0 (WKUP) -------------
+    # --- IMU: LSM6DSV on I2C1 (address 0x6A), INT1 -> PA0 (WKUP) ----------------
     # Project symbol (nicklink.kicad_sym): KiCad has none; same LGA-14 pinout as LSM6DSM.
-    "U4": ("nicklink:LSM6DSV16X", "LSM6DSV16X", "nicklink:LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y_NoSilk", {
+    # LSM6DSV (DS13476), not the LSM6DSV16X it replaced: JLC lists the LSM6DSV16X (C5267406) as
+    # "Standard PCBA only". Same pinout, register map, WHO_AM_I 0x70 and SFLP sensor fusion; it lacks
+    # the LSM6DSV16X's MLC, Qvar and analog hub, none of which this board uses (SDx/SCx are tied to GND).
+    "U4": ("nicklink:LSM6DSV", "LSM6DSV", "nicklink:LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y_NoSilk", {
         "1": "GND",          # SDO/SA0 low -> I2C address 0x6A
         "2": "GND", "3": "GND",  # SDx/SCx aux bus unused
         "4": "IMU_INT1",     # INT1 -> R10 -> PA0 (INT1 drives low by default)
         "5": "+3.3V", "8": "+3.3V",  # VDDIO, VDD
         "6": "GND", "7": "GND",
-        "10": "+3.3V", "11": "+3.3V",  # OCS_Aux/SDO_Aux: "connect to Vdd_IO or leave unconnected" (DS13510 Table 2)
+        "10": "+3.3V", "11": "+3.3V",  # OCS_Aux/SDO_Aux: "connect to Vdd_IO or leave unconnected" (DS13476 Table 2)
         "12": "+3.3V",       # CS high -> I2C mode
         "13": "PB6", "14": "PB7",
-    }, {"MPN": "ST LSM6DSV16XTR"}),
+    }, {"MPN": "ST LSM6DSV (JLC: LSM6DSVETR)"}),
     "C14": ("Device:C", "100n", "Capacitor_SMD:C_0402_1005Metric", {"1": "+3.3V", "2": "GND"}, {"Note": "IMU VDD/VDDIO"}),
     "C15": ("Device:C", "100n", "Capacitor_SMD:C_0402_1005Metric", {"1": "+3.3V", "2": "GND"}, {"Note": "IMU VDD/VDDIO"}),
     # INT1 is "output forced to ground" from power-up until firmware configures the IMU;
@@ -111,7 +114,7 @@ PARTS = {
     "R9": ("Device:R", "4k7", "Resistor_SMD:R_0402_1005Metric", {"1": "+3.3V", "2": "PB7"}, {"Note": "I2C1 SDA pull-up"}),
 
     # --- Headers ------------------------------------------------------------
-    # Top view, USB up: J3 left, J1 right. Pin 1 upper-left; odd pins = left column.
+    # Top view, USB up: J3 left, J1 right. Pin 1 upper-left; odd pins = left column. JLC assembles them (THT).
     "J1": ("Connector_Generic:Conn_02x10_Odd_Even", "Conn_02x10_Odd_Even", "nicklink:PinHeader_2x10_P2.54mm_Vertical_NoSilk", {
         "1": "+5V", "2": "GND",
         "3": "PB15", "4": "PB14", "5": "PB13", "6": "PB12",
@@ -119,7 +122,7 @@ PARTS = {
         "11": "PB0", "12": "PA7", "13": "PA6", "14": "PA5",
         "15": "PA4", "16": "PA3", "17": "PA2", "18": "PA1",
         "19": "PA0", "20": "+3.3V",
-    }, {}),
+    }, {"MPN": "HanElectricity 2541WV-2x10P (male, 6 mm pins, 3 mm tail)"}),
     "J3": ("Connector_Generic:Conn_02x10_Odd_Even", "Conn_02x10_Odd_Even", "nicklink:PinHeader_2x10_P2.54mm_Vertical_NoSilk", {
         "1": "+3.3V", "2": "GND",
         "3": "PA9", "4": "PA10", "5": "PA8", "6": "PA15",
@@ -127,7 +130,7 @@ PARTS = {
         "11": "PB4", "12": "PB5", "13": "PB6", "14": "PB7",
         "15": "PB8", "16": "PB9", "17": "PC13", "18": "PC14",
         "19": "PC15", "20": "GND",
-    }, {}),
+    }, {"MPN": "HanElectricity 2541WV-2x10P (male, 6 mm pins, 3 mm tail)"}),
 }
 
 # Verified JLC/LCSC part numbers (tools/parts_research.md). "" = choose at order time.
@@ -135,7 +138,7 @@ LCSC = {
     "U1": "C8734", "U2": "C2848334", "U3": "C15999", "D2": "C191023", "J2": "C7095263",
     "Y1": "C2682775", "C10": "C1548", "C11": "C1548", "SW1": "C231329", "SW2": "C231329",
     "FB1": "C85812", "C12": "C318563", "C4": "C23733", "R12": "C873764", "F1": "C22435898", "Q1": "C388477",
-    "U4": "C5267406", "D1": "C264407", "D3": "C74338",
+    "U4": "C41785564", "D1": "C264407", "D3": "C74338", "J1": "C5383109", "J3": "C5383109",
 }
 for _ref, (_sym, _val, _fp, _pins, _extra) in PARTS.items():
     _lcsc = LCSC.get(_ref) or {"100n": "C1525", "1u": "C52923", "10k": "C25744", "5k1": "C25905", "1k5": "C25867", "4k7": "C25900",

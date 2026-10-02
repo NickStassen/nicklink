@@ -61,7 +61,7 @@ The firmware also does these at boot:
 - **User LED:** PC13, push-pull, low = on. It blinks at 1 Hz from SysTick. If the board hard-faults, the LED stays solid on.
 - **JTAG:** AFIO SWJ_CFG is set to "SWD only". This frees PA15, PB3 and PB4, which are JTDI, JTDO and NJTRST at reset and can't be used as GPIO until this is done.
 - **USB:** no stack. PA12 (D+) is held low, so the host sees nothing attached rather than a device that never answers. A USB build should release PA12 at least 10 ms after boot; that forces re-enumeration against the fixed D+ pull-up (R2 2k2 from VBUS with R11 4k7 to GND).
-- **IMU (LSM6DSV16X @ 0x6A):** the firmware runs I2C bus recovery (9 SCL clocks if SDA is stuck low, then a STOP), sets I2C1 to 100 kHz, and checks that WHO_AM_I = 0x70. It then does SW_RESET and configures the IMU:
+- **IMU (LSM6DSV @ 0x6A):** the firmware runs I2C bus recovery (9 SCL clocks if SDA is stuck low, then a STOP), sets I2C1 to 100 kHz, and checks that WHO_AM_I = 0x70. It then does SW_RESET and configures the IMU:
   - INT1 push-pull, active high (IF_CFG PP_OD = 0, H_LACTIVE = 0).
   - Accel 480 Hz ±2 g; gyro 120 Hz ±2000 dps.
   - Tap on X/Y/Z, latched; single and double tap enabled.
@@ -84,7 +84,7 @@ The first run downloads the STM32F103 SVD that Renode's platform file references
 `renode/nicklink.repl` is Renode's `platforms/cpus/stm32f103.repl` plus:
 
 - `rcc` (`NickLinkRCC.cs`): the stock platform has no RCC, only an SVD tag. In this minimal model, the RDY bits follow their ON bits and SWS follows SW. RCC_CSR reset flags start as POR+PIN at power-on, become PIN after each machine reset, and are cleared by RMVF. Setting `HseBroken true` makes the crystal fail.
-- `imu` (`LSM6DSV16X.cs`): Renode has no LSM6DSV16X, so this is a minimal model:
+- `imu` (`LSM6DSV16X.cs`): Renode has no LSM6DSV-family model, so this is a minimal one. It was written from the LSM6DSV16X datasheet; every register it models has the same address and bits on the board's LSM6DSV:
   - WHO_AM_I = 0x70, a register file, SW_RESET (IF_CFG survives it), IF_INC.
   - The output registers come from settable `AccX/Y/Z`, `GyroX/Y/Z` and `Temp`.
   - `Tap`, `DoubleTap` and `WakeUp` drive INT1 → PA0 **only if the firmware routed the event**, i.e. INTERRUPTS_ENABLE and the matching MD1_CFG bit are set. They honour H_LACTIVE and LIR, and the ALL_INT_SRC read releases the latch.

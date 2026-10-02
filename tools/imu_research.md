@@ -1,5 +1,7 @@
 # LSM6DSV16X IMU: parts research for NickLink (STM32F103, 3.3 V, I2C1)
 
+> **Update 2026-10-02, as built:** the board ships with the **LSM6DSV** (C41785564), not the LSM6DSV16X. JLC lists C5267406 as "Standard PCBA only", and NickLink is an Economic PCBA board. The LSM6DSV's datasheet (DS13476) gives the same 14-pin assignment and mode-1 connections as section 1 below, the same registers for everything in section 9, and WHO_AM_I 0x70. It lacks the MLC, Qvar and analog hub. Everything below still applies, except the C5267406 part number and its +180° JLC rotation (C41785564's JLC footprint needs 0°). See docs/REVIEW.md, "JLC order round".
+
 Main source: ST datasheet **DS13510 Rev 4 (May 2023)**. I pulled it from LCSC's mirror because st.com timed out from this machine:
 https://datasheet.lcsc.com/datasheet/pdf/7d66556bb254f99e058243c7371e051d.pdf?productCode=C5267406
 (the canonical copy is https://www.st.com/resource/en/datasheet/lsm6dsv16x.pdf). Page numbers below refer to DS13510.

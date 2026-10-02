@@ -33,7 +33,9 @@ Per-part pages: `https://jlcpcb.com/partdetail/<C-number>` and `https://www.lcsc
 | 8 | 5.1 kΩ 0402 1% | UNI-ROYAL 0402WGF5101TCE | **C25905** | **Basic** | Yes | |
 | 8 | 1.5 kΩ 0402 1% | UNI-ROYAL 0402WGF1501TCE | **C25867** | **Basic** | Yes | |
 | 9 | MCU | ST STM32F103C8T6 (LQFP-48) | C8734 | Extended, **Preferred** (no loading fee) | Yes (150k stock) | See section 9. |
-| 10 | USB-C | GCT **USB4085-GF-A** | **C7095263** | Extended (JLC lists it as "Plugin", i.e. THT) | Yes (3.6k stock, $1.40) | Through-hole, right-angle USB 2.0 Type-C receptacle, 16 pins. Hand-solder it, or order it from LCSC. |
+| 10 | USB-C | GCT **USB4085-GF-A** | **C7095263** | Extended (JLC lists it as "Plugin", i.e. THT) | Yes (3.6k stock, $1.40) | Through-hole, right-angle USB 2.0 Type-C receptacle, 16 pins. JLC assembles it (Economic PCBA, wave soldered). Its EasyEDA footprint origin is 2.975 / 2.180 mm from pad A1 (`JLC_OFS` in `tools/fab.sh`). |
+| 11 | 2x10 headers (J1, J3) | HanElectricity **2541WV-2x10P** | **C5383109** | Extended ("Plugin") | Yes (4.6k stock, $0.07) | Male, vertical, 2.54 mm, 6 mm pins, 3 mm tail, gold. JLC assembles them. Same EasyEDA footprint (horizontal, origin at the pad centre: -90° and a centring offset in the CPL) as hanxia HX PZ2.54-2x10P ZZ, C42372518 (10k stock), the second source. |
+| 12 | IMU (U4), as built | ST **LSM6DSV** (JLC/LCSC code LSM6DSVETR) | **C41785564** | Extended, **Economic and Standard** | Yes (979 stock, ~$6.14 at qty 5) | Replaces the LSM6DSV16X C5267406, which JLC lists as Standard PCBA only. Same pinout, registers, WHO_AM_I and SFLP; see docs/REVIEW.md, JLC order round. EasyEDA footprint "-TL" (pin 1 top-left): CPL correction 0°. |
 
 ## Key numbers
 

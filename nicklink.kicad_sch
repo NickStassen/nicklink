@@ -3297,7 +3297,7 @@
               (font
                 (size 1.27 1.27))))))
       (embedded_fonts no))
-    (symbol "nicklink:LSM6DSV16X"
+    (symbol "nicklink:LSM6DSV"
       (exclude_from_sim no)
       (in_bom yes)
       (on_board yes)
@@ -3311,7 +3311,7 @@
           (font
             (size 1.27 1.27))
           (justify left)))
-      (property "Value" "LSM6DSV16X"
+      (property "Value" "LSM6DSV"
         (at -11.43 12.7 0)
         (show_name no)
         (do_not_autoplace no)
@@ -3328,7 +3328,7 @@
           (font
             (size 1.27 1.27))
           (justify left)))
-      (property "Datasheet" "https://www.st.com/resource/en/datasheet/lsm6dsv16x.pdf"
+      (property "Datasheet" "https://www.st.com/resource/en/datasheet/lsm6dsv.pdf"
         (at 2.54 -16.51 0)
         (show_name no)
         (do_not_autoplace no)
@@ -3360,7 +3360,7 @@
         (effects
           (font
             (size 1.27 1.27))))
-      (symbol "LSM6DSV16X_0_1"
+      (symbol "LSM6DSV_0_1"
         (rectangle
           (start 11.43 11.43)
           (end -11.43 -11.43)
@@ -3369,7 +3369,7 @@
             (type default))
           (fill
             (type background))))
-      (symbol "LSM6DSV16X_1_1"
+      (symbol "LSM6DSV_1_1"
         (pin input line
           (at -15.24 7.62 0)
           (length 3.81)
@@ -11322,6 +11322,22 @@
       (effects
         (font
           (size 1.27 1.27))))
+    (property "MPN" "HanElectricity 2541WV-2x10P (male, 6 mm pins, 3 mm tail)"
+      (at 299.72 139.7 0)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (property "LCSC" "C5383109"
+      (at 299.72 139.7 0)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
     (pin "1"
       (uuid "00019937-309f-5948-8ed6-b0fd325ecc7e"))
     (pin "2"
@@ -11866,6 +11882,22 @@
       (effects
         (font
           (size 1.27 1.27))))
+    (property "MPN" "HanElectricity 2541WV-2x10P (male, 6 mm pins, 3 mm tail)"
+      (at 365.76 139.7 0)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (property "LCSC" "C5383109"
+      (at 365.76 139.7 0)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
     (pin "1"
       (uuid "0856a3aa-efd0-58b9-9a13-32352a5a27f6"))
     (pin "2"
@@ -12362,7 +12394,7 @@
           (reference "#PWR53")
           (unit 1)))))
   (symbol
-    (lib_id "nicklink:LSM6DSV16X")
+    (lib_id "nicklink:LSM6DSV")
     (at 309.88 190.5 0)
     (unit 1)
     (body_style 1)
@@ -12380,7 +12412,7 @@
         (font
           (size 1.27 1.27))
         (justify left)))
-    (property "Value" "LSM6DSV16X"
+    (property "Value" "LSM6DSV"
       (at 298.45 177.8 0)
       (show_name no)
       (do_not_autoplace no)
@@ -12396,7 +12428,7 @@
       (effects
         (font
           (size 1.27 1.27))))
-    (property "Datasheet" "https://www.st.com/resource/en/datasheet/lsm6dsv16x.pdf"
+    (property "Datasheet" "https://www.st.com/resource/en/datasheet/lsm6dsv.pdf"
       (at 309.88 190.5 0)
       (hide yes)
       (show_name no)
@@ -12412,7 +12444,7 @@
       (effects
         (font
           (size 1.27 1.27))))
-    (property "MPN" "ST LSM6DSV16XTR"
+    (property "MPN" "ST LSM6DSV (JLC: LSM6DSVETR)"
       (at 309.88 190.5 0)
       (hide yes)
       (show_name no)
@@ -12420,7 +12452,7 @@
       (effects
         (font
           (size 1.27 1.27))))
-    (property "LCSC" "C5267406"
+    (property "LCSC" "C41785564"
       (at 309.88 190.5 0)
       (hide yes)
       (show_name no)

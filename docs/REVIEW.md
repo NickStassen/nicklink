@@ -8,7 +8,7 @@ v1.3 adds an on-board 6-axis IMU for motion tracking, robotics and tap-activated
 | vs v1.1 (1122 mm²) | −25% | **−23%** |
 | Parts | 33 | 42 |
 
-**IMU circuit** (ST LSM6DSV16X, LGA-14 2.5 × 3 mm, LCSC C5267406):
+**IMU circuit** (designed as ST LSM6DSV16X, LCSC C5267406; built as the pin- and register-compatible **LSM6DSV, C41785564**, see [JLC order round](#jlc-order-round-2026-10-02); LGA-14 2.5 × 3 mm):
 
 | Pin | Connection | Why |
 |---|---|---|
@@ -188,6 +188,32 @@ Five independent reviewers re-checked the reliability-pass board (commit d48be23
 - **VTERM:** 3.0–3.6 V holds only for VBUS 4.40–5.28 V; at 5.5 V it reaches 3.75 V (PA12 is FT).
 - **Hard-wired D+ pull-up:** firmware that doesn't use USB still shows a device at the host. Drive PA12 low to hide it.
 
+## JLC order round (2026-10-02)
+
+Uploading the v1.3 files to a real JLCPCB Economic PCBA order turned up five problems that no DRC or review had caught. All are fixed in the fab outputs; the copper is unchanged.
+
+| JLC said | Cause | Fix |
+|---|---|---|
+| U4 "Standard Only" (unselectable on Economic PCBA) | JLC flags the LSM6DSV16X, C5267406, as "PCBA Type: Standard Only, X-ray Inspection Required". Almost every ST IMU it stocks has the same flag. | U4 is now the **LSM6DSV, C41785564** ("Economic and Standard"). See below. |
+| "Multiple lines in the BOM have been matched to the same part" on R1/R8/R10, R4/R5, R7/R9/R11, SW1/SW2 | `fab.sh` grouped the BOM by value + footprint, so one LCSC part ended up on two lines (`_NoSilk` footprint variants; RESET/BOOT0 values) and JLC unselected both | The BOM is grouped by LCSC number: 26 lines, one per part |
+| Headers and USB-C not assembled | The BOM left THT parts out for hand soldering | JLC assembles them (Economic PCBA includes wave-soldered THT). J1/J3 are HanElectricity 2541WV-2x10P, C5383109. |
+| "Component may be offset from the PCB" | The CPL used the board's lower-left corner as its origin, while the Gerbers use KiCad's page coordinates, so every part sat 100 / 125.5 mm off the board | The CPL is written in the Gerber frame (kicad pos coordinates as exported). `fab.sh` asserts that every part lands inside the outline. |
+| (preview) THT parts misplaced | JLC's footprints for the header (drawn horizontal, origin at the pad-array centre) and USB4085 (origin 2.975 / 2.180 mm from A1) differ from KiCad's | Per-LCSC rotation and origin corrections (`JLC_ROT`, `JLC_OFS`), read from the EasyEDA footprints |
+
+**IMU swap.** LCSC's datasheet for C41785564 is ST's DS13476 (LSM6DSV). Checked against the board and firmware:
+- **Pins:** all 14 have the same functions and mode-1 (I2C) connections as the LSM6DSV16X. SDx/SCx go to Vdd_IO or GND (tied to GND), OCS_Aux/SDO_Aux to Vdd_IO or unconnected (Vdd_IO), CS is high and SA0 low.
+- **Registers:** every register the test firmware touches has the same address and bits, and WHO_AM_I is 0x70. That covers IF_CFG, CTRL1/2/3/6/8, ALL_INT_SRC, WAKE_UP_SRC, TAP_SRC, FUNCTIONS_ENABLE, TAP_CFG0–2, TAP_THS_6D, TAP_DUR, WAKE_UP_THS/DUR and MD1_CFG. The tap and wake LSB scaling is identical too.
+- **SFLP:** game rotation vector in the FIFO (tag 0x13), SFLP_GAME_EN in EMB_FUNC_EN_A (04h) and SFLP_ODR (5Eh). Same as the LSM6DSV16X.
+- **Lost:** the machine-learning core, Qvar and the analog hub. None is used: Qvar and the analog hub need pins 2/3, which are grounded.
+- **JLC footprint:** "LGA-14 ...-TL", pin 1 top-left like KiCad's, so its CPL correction is 0°. The LSM6DSV16X's was "-BR", +180°.
+- **Unverified:** ST's store lists only LSM6DSV and LSM6DSVTR as order codes. "LSM6DSVETR" is the JLC/LCSC code, so confirm WHO_AM_I and SFLP output on the first boards.
+- **Cost:** about $6.14 each at JLC for 5, against about $3 for the LSM6DSV16X.
+
+**Order settings used:** 5 boards, all 5 assembled, Economic PCBA top side, 1.6 mm, **ENIG with green mask**.
+- On Economic PCBA, 1.6 mm ENIG is offered only with green.
+- Black and white mask need 0.13 mm between pads to keep a mask bridge (0.10 mm for green), and the USB-C pads are 0.11 mm apart.
+- JLC's quote was $134.47 before shipping.
+
 ---
 
 # NickLink v1.2 design review — 2026-10-01
@@ -263,5 +289,5 @@ These checks establish connectivity and geometry. They do not establish signal i
 1. **Regulator thermals.** The 250 mA 3V3 budget assumes about 150 °C/W on this two-layer board, an estimate scaled from TI's 100 °C/W four-layer figure. Measure the temperature at the intended load.
 2. **Crystal load.** 15 pF assumes 3–5 pF stray. If the HSE measures fast, use 18 pF (LCSC C1549).
 3. **JLC Extended parts** (each adds a loading fee): TLV75533, USBLC6-2P6 (genuine ST stock is limited; a TECH PUBLIC alternative exists), B3U buttons, the 8 MHz crystal, the 0402 ferrite, and possibly the LEDs. See `tools/parts_research.md`.
-4. **The USB-C connector and headers are hand-soldered** (through-hole).
+4. **The USB-C connector and headers are hand-soldered** (through-hole). *(Superseded: JLC assembles them since the 2026-10-02 order round.)*
 5. **First article:** short check; current-limited 5 V; measure 5V/3V3/VDDA; SWD attach and RESET button; HSE startup; USB enumeration in both orientations; BOOT+RESET into the USART1 bootloader; user LED; then the peripherals you need.
