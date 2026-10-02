@@ -39,6 +39,11 @@ def export(pcb, dsn, skip):
     unlocked = [t.m_Uuid.AsString() for t in board.GetTracks() if not t.IsLocked()]
     for t in board.GetTracks():
         t.SetLocked(True)
+    # Pour-only rule areas (tracks allowed) only matter to the zone filler, but KiCad
+    # exports every rule area as a DSN keepout; drop them so Freerouting can route there.
+    for z in list(board.Zones()):
+        if z.GetIsRuleArea() and not z.GetDoNotAllowTracks():
+            board.Delete(z)
     assert pcbnew.ExportSpecctraDSN(board, dsn), "ExportSpecctraDSN failed"
     open(dsn + ".unlock", "w").write("\n".join(unlocked))
     text = open(dsn).read()

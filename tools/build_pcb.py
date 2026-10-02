@@ -149,19 +149,26 @@ def main(template, out, netfile=None):
             o.Append(mm(x + P.OX), mm(y + P.OY))
         board.Add(z)
 
-    for name, w, pts in P.PREROUTE:
-        for a, b in zip(pts, pts[1:]):
-            t = pcbnew.PCB_TRACK(board)
-            t.SetStart(V(*a)); t.SetEnd(V(*b)); t.SetWidth(mm(w))
-            t.SetLayer(pcbnew.F_Cu); t.SetNet(nets[name]); t.SetLocked(True)
-            board.Add(t)
+    for layer, routes in ((pcbnew.F_Cu, P.PREROUTE), (pcbnew.B_Cu, getattr(P, "PREROUTE_B", []))):
+        for name, w, pts in routes:
+            for a, b in zip(pts, pts[1:]):
+                t = pcbnew.PCB_TRACK(board)
+                t.SetStart(V(*a)); t.SetEnd(V(*b)); t.SetWidth(mm(w))
+                t.SetLayer(layer); t.SetNet(nets[name]); t.SetLocked(True)
+                board.Add(t)
+
+    for name, (x, y) in getattr(P, "PREVIAS", []):
+        v = pcbnew.PCB_VIA(board)
+        v.SetPosition(V(x, y)); v.SetWidth(mm(0.6)); v.SetDrill(mm(0.3))
+        v.SetNet(nets[name]); v.SetLocked(True)
+        board.Add(v)
 
     # Keep-outs (no tracks, vias or pour), e.g. top copper under the IMU per ST TN0018
-    for layer, (x0, y0, x1, y1) in P.KEEPOUTS:
+    for layer, (x0, y0, x1, y1), kind in P.KEEPOUTS:
         k = pcbnew.ZONE(board)
         k.SetIsRuleArea(True)
         k.SetLayer(layer)
-        k.SetDoNotAllowTracks(True); k.SetDoNotAllowVias(True); k.SetDoNotAllowZoneFills(True)
+        k.SetDoNotAllowTracks(kind == "all"); k.SetDoNotAllowVias(kind == "all"); k.SetDoNotAllowZoneFills(True)
         k.SetDoNotAllowPads(False); k.SetDoNotAllowFootprints(False)
         o = k.Outline(); o.NewOutline()
         for x, y in ((x0, y0), (x1, y0), (x1, y1), (x0, y1)):

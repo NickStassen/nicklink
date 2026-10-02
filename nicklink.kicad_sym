@@ -53,7 +53,7 @@
 				)
 			)
 		)
-		(property "Description" "6-axis IMU with sensor fusion, I2C/SPI/I3C, LGA-14 2.5x3 mm. Pin types set for I2C use with the aux bus tied off (SA0 input, SDx/SCx passive)."
+		(property "Description" "6-axis IMU with sensor fusion, I2C/SPI/I3C, LGA-14 2.5x3 mm. Pin types set for I2C use with the aux bus tied off (SA0 input; SDx/SCx/OCS_Aux/SDO_Aux passive)."
 			(at 0 0 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -281,7 +281,7 @@
 					)
 				)
 			)
-			(pin bidirectional line
+			(pin passive line
 				(at -15.24 10.16 0)
 				(length 3.81)
 				(name "SDO_Aux"

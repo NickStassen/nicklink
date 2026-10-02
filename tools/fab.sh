@@ -74,11 +74,21 @@ with open(f"{out}/nicklink_BOM.csv", "w", newline="") as f:
 pts = [(int(x) / 1e6, int(y) / 1e6) for x, y in re.findall(r"^X(-?\d+)Y(-?\d+)", open(edge).read(), re.M)]
 x0, y0 = min(p[0] for p in pts), min(p[1] for p in pts)
 w_mm, h_mm = max(p[0] for p in pts) - x0, max(p[1] for p in pts) - y0
+# JLC places its own (EasyEDA) footprint at the CPL angle. Where that footprint's pin 1
+# differs from KiCad's at 0 deg, add the difference. Verified 2026-10-01 against the
+# EasyEDA footprints of the BOM's LCSC parts (easyeda.com/api/products/<C>/components):
+#   LQFP-48 C8734 "-BL": pin 1 bottom-left  = KiCad at 90  -> -90
+#   SOT-666 C15999 "-BR": pin 1 bottom-right = KiCad at 180 -> +180
+#   LGA-14 C5267406 "-BR": pin 1 bottom-right = KiCad at 180 -> +180
+# All other parts here (0402/0603, SOD-323, 0402 LEDs, 3225 crystal, WSON-6, B3U) match.
+JLC_ROT = {"LQFP-48": -90, "SOT-666": 180, "LGA-14": 180}
+def jlc_rot(pkg):
+    return next((v for k, v in JLC_ROT.items() if pkg.startswith(k)), 0)
 with open(f"{out}/nicklink_CPL.csv", "w", newline="") as f:
     w = csv.writer(f); w.writerow(["Designator", "Mid X", "Mid Y", "Layer", "Rotation"])
     for ref in sorted(smd, key=lambda s: (re.sub(r"\d", "", s), int(re.sub(r"\D", "", s)))):
         r = smd[ref]
-        w.writerow([ref, f"{float(r['PosX']) - x0:.4f}mm", f"{float(r['PosY']) - y0:.4f}mm", "Top", f"{float(r['Rot']) % 360:g}"])
+        w.writerow([ref, f"{float(r['PosX']) - x0:.4f}mm", f"{float(r['PosY']) - y0:.4f}mm", "Top", f"{(float(r['Rot']) + jlc_rot(r['Package'])) % 360:g}"])
 sys.path.insert(0, "tools"); import placement as P
 assert abs(w_mm - P.W) < 0.01 and abs(h_mm - P.H) < 0.01, f"Edge.Cuts {w_mm:.2f} x {h_mm:.2f} mm, expected {P.W} x {P.H}"
 print(f"BOM: {len(rows)} lines, {sum(len(r[1].split(',')) for r in rows)} parts; CPL: {len(smd)} SMD parts; board {w_mm:.2f} x {h_mm:.2f} mm")

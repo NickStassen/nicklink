@@ -3138,7 +3138,7 @@
         (effects
           (font
             (size 1.27 1.27))))
-      (property "Description" "6-axis IMU with sensor fusion, I2C/SPI/I3C, LGA-14 2.5x3 mm. Pin types set for I2C use with the aux bus tied off (SA0 input, SDx/SCx passive)."
+      (property "Description" "6-axis IMU with sensor fusion, I2C/SPI/I3C, LGA-14 2.5x3 mm. Pin types set for I2C use with the aux bus tied off (SA0 input; SDx/SCx/OCS_Aux/SDO_Aux passive)."
         (at 0 0 0)
         (show_name no)
         (do_not_autoplace no)
@@ -3283,7 +3283,7 @@
             (effects
               (font
                 (size 1.27 1.27)))))
-        (pin bidirectional line
+        (pin passive line
           (at -15.24 10.16 0)
           (length 3.81)
           (name "SDO_Aux"
@@ -9361,7 +9361,7 @@
         (font
           (size 1.27 1.27))
         (justify left)))
-    (property "Value" "1u"
+    (property "Value" "10u"
       (at 313.182 41.91 0)
       (show_name no)
       (do_not_autoplace no)
@@ -9369,7 +9369,7 @@
         (font
           (size 1.27 1.27))
         (justify left)))
-    (property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+    (property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
       (at 309.88 40.64 0)
       (hide yes)
       (show_name no)
@@ -9393,7 +9393,7 @@
       (effects
         (font
           (size 1.27 1.27))))
-    (property "Note" "LDO input"
+    (property "Note" "LDO input + VBUS hot-plug bulk (USB allows <= 10 uF)"
       (at 309.88 40.64 0)
       (hide yes)
       (show_name no)
@@ -9401,7 +9401,7 @@
       (effects
         (font
           (size 1.27 1.27))))
-    (property "LCSC" "C52923"
+    (property "LCSC" "C19702"
       (at 309.88 40.64 0)
       (hide yes)
       (show_name no)
@@ -9574,7 +9574,7 @@
         (font
           (size 1.27 1.27))
         (justify left)))
-    (property "Footprint" "Package_SON:WSON-6-1EP_2x2mm_P0.65mm_EP1x1.6mm"
+    (property "Footprint" "nicklink:WSON-6-1EP_2x2mm_P0.65mm_EP1x1.6mm_ThermalVias03"
       (at 335.28 40.64 0)
       (hide yes)
       (show_name no)
@@ -11757,7 +11757,7 @@
       (effects
         (font
           (size 1.27 1.27))))
-    (property "Description" "6-axis IMU with sensor fusion, I2C/SPI/I3C, LGA-14 2.5x3 mm. Pin types set for I2C use with the aux bus tied off (SA0 input, SDx/SCx passive)."
+    (property "Description" "6-axis IMU with sensor fusion, I2C/SPI/I3C, LGA-14 2.5x3 mm. Pin types set for I2C use with the aux bus tied off (SA0 input; SDx/SCx/OCS_Aux/SDO_Aux passive)."
       (at 309.88 190.5 0)
       (hide yes)
       (show_name no)
@@ -11873,12 +11873,22 @@
   (no_connect
     (at 325.12 185.42)
     (uuid "ff007884-b286-5764-bc43-a3d1ae542a24"))
-  (no_connect
-    (at 294.64 190.5)
-    (uuid "d0c7eb72-6eca-5be0-a1da-957ea8379a6c"))
-  (no_connect
-    (at 294.64 180.34)
-    (uuid "a0cf8218-fc12-56ff-982d-f42da426b615"))
+  (wire
+    (pts
+      (xy 294.64 190.5)
+      (xy 287.02 190.5))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "02887fbb-0285-5a52-b767-40e2f82d255c"))
+  (wire
+    (pts
+      (xy 294.64 180.34)
+      (xy 287.02 180.34))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "89cdbd07-c407-52c0-bd3b-4ab20ea77f4d"))
   (wire
     (pts
       (xy 294.64 198.12)
@@ -11903,6 +11913,63 @@
       (width 0)
       (type default))
     (uuid "274e66ff-f7ba-5231-9f1d-58493fd591c4"))
+  (symbol
+    (lib_id "power:+3.3V")
+    (at 287.02 180.34 90)
+    (unit 1)
+    (body_style 1)
+    (exclude_from_sim no)
+    (in_bom yes)
+    (on_board yes)
+    (in_pos_files yes)
+    (dnp no)
+    (uuid "3cf30dee-7330-58b9-bc6c-03c30b6bcbdb")
+    (property "Reference" "#PWR56"
+      (at 287.02 180.34 90)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (property "Value" "+3.3V"
+      (at 280.705 180.34 90)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (property "Footprint" ""
+      (at 287.02 180.34 90)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (property "Datasheet" ""
+      (at 287.02 180.34 90)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (property "Description" "Power symbol creates a global label with name \"+3.3V\""
+      (at 287.02 180.34 90)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (pin "1"
+      (uuid "9e4481bf-7faf-50e1-b6c7-6f111b8e80db"))
+    (instances
+      (project "nicklink"
+        (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
+          (reference "#PWR56")
+          (unit 1)))))
   (wire
     (pts
       (xy 287.02 182.88)
@@ -11935,7 +12002,7 @@
     (in_pos_files yes)
     (dnp no)
     (uuid "97092359-a37c-58c0-afca-3c3061b0fdbd")
-    (property "Reference" "#PWR56"
+    (property "Reference" "#PWR57"
       (at 287.02 182.88 90)
       (hide yes)
       (show_name no)
@@ -11975,11 +12042,68 @@
         (font
           (size 1.27 1.27))))
     (pin "1"
-      (uuid "9e4481bf-7faf-50e1-b6c7-6f111b8e80db"))
+      (uuid "cf937dcb-f5ba-5401-9a4a-b4284e333ed4"))
     (instances
       (project "nicklink"
         (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
-          (reference "#PWR56")
+          (reference "#PWR57")
+          (unit 1)))))
+  (symbol
+    (lib_id "power:+3.3V")
+    (at 287.02 190.5 90)
+    (unit 1)
+    (body_style 1)
+    (exclude_from_sim no)
+    (in_bom yes)
+    (on_board yes)
+    (in_pos_files yes)
+    (dnp no)
+    (uuid "32164e25-8f11-5c2f-b78e-3895119e26cd")
+    (property "Reference" "#PWR58"
+      (at 287.02 190.5 90)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (property "Value" "+3.3V"
+      (at 280.705 190.5 90)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (property "Footprint" ""
+      (at 287.02 190.5 90)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (property "Datasheet" ""
+      (at 287.02 190.5 90)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (property "Description" "Power symbol creates a global label with name \"+3.3V\""
+      (at 287.02 190.5 90)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (pin "1"
+      (uuid "0acc4bc8-1141-5c19-837e-1cdc570760da"))
+    (instances
+      (project "nicklink"
+        (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
+          (reference "#PWR58")
           (unit 1)))))
   (symbol
     (lib_id "power:+3.3V")
@@ -11992,7 +12116,7 @@
     (in_pos_files yes)
     (dnp no)
     (uuid "a22b8ca5-a096-53e3-8c5e-3ffa44cbb224")
-    (property "Reference" "#PWR57"
+    (property "Reference" "#PWR59"
       (at 287.02 198.12 90)
       (hide yes)
       (show_name no)
@@ -12032,11 +12156,11 @@
         (font
           (size 1.27 1.27))))
     (pin "1"
-      (uuid "cf937dcb-f5ba-5401-9a4a-b4284e333ed4"))
+      (uuid "be75b466-14d3-5399-b65d-2347b514a3ad"))
     (instances
       (project "nicklink"
         (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
-          (reference "#PWR57")
+          (reference "#PWR59")
           (unit 1)))))
   (label "PB7"
     (at 292.1 193.04 180)
@@ -12071,7 +12195,7 @@
     (in_pos_files yes)
     (dnp no)
     (uuid "07479561-f70a-5109-9ee7-e468fa38eb79")
-    (property "Reference" "#PWR58"
+    (property "Reference" "#PWR60"
       (at 309.88 172.72 0)
       (hide yes)
       (show_name no)
@@ -12111,11 +12235,11 @@
         (font
           (size 1.27 1.27))))
     (pin "1"
-      (uuid "0acc4bc8-1141-5c19-837e-1cdc570760da"))
+      (uuid "6b4cd82f-713a-5cc5-b880-56020e6e74fe"))
     (instances
       (project "nicklink"
         (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
-          (reference "#PWR58")
+          (reference "#PWR60")
           (unit 1)))))
   (symbol
     (lib_id "power:GND")
@@ -12128,7 +12252,7 @@
     (in_pos_files yes)
     (dnp no)
     (uuid "7dbe6ea5-6735-524d-88d9-af0a44407fe2")
-    (property "Reference" "#PWR59"
+    (property "Reference" "#PWR61"
       (at 309.88 208.28 0)
       (hide yes)
       (show_name no)
@@ -12168,19 +12292,19 @@
         (font
           (size 1.27 1.27))))
     (pin "1"
-      (uuid "be75b466-14d3-5399-b65d-2347b514a3ad"))
+      (uuid "06554903-b9c3-5081-a0dc-a88a4e572a7f"))
     (instances
       (project "nicklink"
         (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
-          (reference "#PWR59")
+          (reference "#PWR61")
           (unit 1)))))
-  (label "PA0"
+  (label "IMU_INT1"
     (at 327.66 182.88 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "884af5b6-c06f-57c5-a698-89da56787ed8"))
+    (uuid "26290303-4288-58b5-b94d-286cfe905f8a"))
   (symbol
     (lib_id "Device:R")
     (at 342.9 187.96 0)
@@ -12284,7 +12408,7 @@
     (in_pos_files yes)
     (dnp no)
     (uuid "b5a33530-b2bd-5945-a4c3-c8fac95d5c1d")
-    (property "Reference" "#PWR60"
+    (property "Reference" "#PWR62"
       (at 342.9 181.61 0)
       (hide yes)
       (show_name no)
@@ -12324,11 +12448,11 @@
         (font
           (size 1.27 1.27))))
     (pin "1"
-      (uuid "6b4cd82f-713a-5cc5-b880-56020e6e74fe"))
+      (uuid "c260209b-1f47-5745-a3b4-9341377d57e6"))
     (instances
       (project "nicklink"
         (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
-          (reference "#PWR60")
+          (reference "#PWR62")
           (unit 1)))))
   (label "PB6"
     (at 342.9 194.31 270)
@@ -12440,7 +12564,7 @@
     (in_pos_files yes)
     (dnp no)
     (uuid "0cd95b7d-5091-5a6f-a652-8e206e14f9d1")
-    (property "Reference" "#PWR61"
+    (property "Reference" "#PWR63"
       (at 355.6 181.61 0)
       (hide yes)
       (show_name no)
@@ -12480,11 +12604,11 @@
         (font
           (size 1.27 1.27))))
     (pin "1"
-      (uuid "06554903-b9c3-5081-a0dc-a88a4e572a7f"))
+      (uuid "3158e9e5-03c3-541a-b0ad-cd81d93b9db0"))
     (instances
       (project "nicklink"
         (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
-          (reference "#PWR61")
+          (reference "#PWR63")
           (unit 1)))))
   (label "PB7"
     (at 355.6 194.31 270)
@@ -12544,7 +12668,7 @@
       (effects
         (font
           (size 1.27 1.27))))
-    (property "Note" "IMU VDD"
+    (property "Note" "IMU VDD/VDDIO"
       (at 368.3 187.96 0)
       (hide yes)
       (show_name no)
@@ -12596,7 +12720,7 @@
     (in_pos_files yes)
     (dnp no)
     (uuid "a00b2e2a-5023-5831-8b65-04c3f0b4b650")
-    (property "Reference" "#PWR62"
+    (property "Reference" "#PWR64"
       (at 368.3 181.61 0)
       (hide yes)
       (show_name no)
@@ -12636,11 +12760,11 @@
         (font
           (size 1.27 1.27))))
     (pin "1"
-      (uuid "c260209b-1f47-5745-a3b4-9341377d57e6"))
+      (uuid "52396ca4-3987-5019-b06f-4311557bf10f"))
     (instances
       (project "nicklink"
         (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
-          (reference "#PWR62")
+          (reference "#PWR64")
           (unit 1)))))
   (symbol
     (lib_id "power:GND")
@@ -12653,7 +12777,7 @@
     (in_pos_files yes)
     (dnp no)
     (uuid "92c19c65-a18d-50ba-bf44-0d47a5bfe912")
-    (property "Reference" "#PWR63"
+    (property "Reference" "#PWR65"
       (at 368.3 194.31 0)
       (hide yes)
       (show_name no)
@@ -12693,11 +12817,11 @@
         (font
           (size 1.27 1.27))))
     (pin "1"
-      (uuid "3158e9e5-03c3-541a-b0ad-cd81d93b9db0"))
+      (uuid "37f9ee68-494b-506f-9d82-ab66c788105d"))
     (instances
       (project "nicklink"
         (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
-          (reference "#PWR63")
+          (reference "#PWR65")
           (unit 1)))))
   (symbol
     (lib_id "Device:C")
@@ -12750,7 +12874,7 @@
       (effects
         (font
           (size 1.27 1.27))))
-    (property "Note" "IMU VDDIO"
+    (property "Note" "IMU VDD/VDDIO"
       (at 381 187.96 0)
       (hide yes)
       (show_name no)
@@ -12802,7 +12926,7 @@
     (in_pos_files yes)
     (dnp no)
     (uuid "bf308d28-2692-57f2-ad42-707c48ad97e2")
-    (property "Reference" "#PWR64"
+    (property "Reference" "#PWR66"
       (at 381 181.61 0)
       (hide yes)
       (show_name no)
@@ -12842,11 +12966,11 @@
         (font
           (size 1.27 1.27))))
     (pin "1"
-      (uuid "52396ca4-3987-5019-b06f-4311557bf10f"))
+      (uuid "44ccc93c-89db-58e6-9a31-0b5b2146409d"))
     (instances
       (project "nicklink"
         (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
-          (reference "#PWR64")
+          (reference "#PWR66")
           (unit 1)))))
   (symbol
     (lib_id "power:GND")
@@ -12859,7 +12983,7 @@
     (in_pos_files yes)
     (dnp no)
     (uuid "f5156574-318b-5f44-83f0-16f6e9a84088")
-    (property "Reference" "#PWR65"
+    (property "Reference" "#PWR67"
       (at 381 194.31 0)
       (hide yes)
       (show_name no)
@@ -12899,12 +13023,118 @@
         (font
           (size 1.27 1.27))))
     (pin "1"
-      (uuid "37f9ee68-494b-506f-9d82-ab66c788105d"))
+      (uuid "e8b2bba2-4b2d-52b9-9d38-f65c63656af6"))
     (instances
       (project "nicklink"
         (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
-          (reference "#PWR65")
+          (reference "#PWR67")
           (unit 1)))))
+  (symbol
+    (lib_id "Device:R")
+    (at 393.7 187.96 0)
+    (unit 1)
+    (body_style 1)
+    (exclude_from_sim no)
+    (in_bom yes)
+    (on_board yes)
+    (in_pos_files yes)
+    (dnp no)
+    (uuid "d0f1eb86-2478-5aed-9ae1-436baad010dd")
+    (property "Reference" "R10"
+      (at 395.986 186.69 0)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left)))
+    (property "Value" "10k"
+      (at 395.986 189.23 0)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left)))
+    (property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+      (at 393.7 187.96 0)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (property "Datasheet" ""
+      (at 393.7 187.96 0)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (property "Description" "Resistor"
+      (at 393.7 187.96 0)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (property "Note" "IMU INT1 isolation"
+      (at 393.7 187.96 0)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (property "LCSC" "C25744"
+      (at 393.7 187.96 0)
+      (hide yes)
+      (show_name no)
+      (do_not_autoplace no)
+      (effects
+        (font
+          (size 1.27 1.27))))
+    (pin "1"
+      (uuid "a83affcb-e9ff-54e4-8edd-0230fa461bf2"))
+    (pin "2"
+      (uuid "9427ced4-e132-59ac-8b47-d9817bc82120"))
+    (instances
+      (project "nicklink"
+        (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
+          (reference "R10")
+          (unit 1)))))
+  (wire
+    (pts
+      (xy 393.7 184.15)
+      (xy 393.7 181.61))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "20b8bba0-3d19-5135-96a1-c413ad860fa7"))
+  (wire
+    (pts
+      (xy 393.7 191.77)
+      (xy 393.7 194.31))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "e4af16f5-cae6-506b-9055-2e3e45d603d8"))
+  (label "IMU_INT1"
+    (at 393.7 181.61 90)
+    (effects
+      (font
+        (size 1.27 1.27))
+      (justify left bottom))
+    (uuid "1aa55927-58aa-56c2-b226-dafbe7b23db4"))
+  (label "PA0"
+    (at 393.7 194.31 270)
+    (effects
+      (font
+        (size 1.27 1.27))
+      (justify right bottom))
+    (uuid "6172e088-a031-5655-a345-7f91133f59e4"))
   (symbol
     (lib_id "power:+3.3VA")
     (at 284.48 71.12 0)
@@ -12916,7 +13146,7 @@
     (in_pos_files yes)
     (dnp no)
     (uuid "2230e8c1-9af3-534c-943e-e6297222e776")
-    (property "Reference" "#PWR66"
+    (property "Reference" "#PWR68"
       (at 284.48 71.12 0)
       (hide yes)
       (show_name no)
@@ -12956,11 +13186,11 @@
         (font
           (size 1.27 1.27))))
     (pin "1"
-      (uuid "44ccc93c-89db-58e6-9a31-0b5b2146409d"))
+      (uuid "5863de9b-b7a5-5d1c-a324-6de105e1e859"))
     (instances
       (project "nicklink"
         (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
-          (reference "#PWR66")
+          (reference "#PWR68")
           (unit 1)))))
   (wire
     (pts
@@ -13038,7 +13268,7 @@
     (in_pos_files yes)
     (dnp no)
     (uuid "af7fe498-0a9a-5cbc-95d9-046eb325fe1a")
-    (property "Reference" "#PWR67"
+    (property "Reference" "#PWR69"
       (at 307.34 71.12 0)
       (hide yes)
       (show_name no)
@@ -13078,11 +13308,11 @@
         (font
           (size 1.27 1.27))))
     (pin "1"
-      (uuid "e8b2bba2-4b2d-52b9-9d38-f65c63656af6"))
+      (uuid "32fcb3b2-0671-5ecd-be1e-6331ee493394"))
     (instances
       (project "nicklink"
         (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
-          (reference "#PWR67")
+          (reference "#PWR69")
           (unit 1)))))
   (wire
     (pts
@@ -13160,7 +13390,7 @@
     (in_pos_files yes)
     (dnp no)
     (uuid "032fcde0-8548-58b7-bca1-5583d9ed8484")
-    (property "Reference" "#PWR68"
+    (property "Reference" "#PWR70"
       (at 330.2 71.12 0)
       (hide yes)
       (show_name no)
@@ -13200,11 +13430,11 @@
         (font
           (size 1.27 1.27))))
     (pin "1"
-      (uuid "5863de9b-b7a5-5d1c-a324-6de105e1e859"))
+      (uuid "eb919dbe-3f2c-5bdb-b3fc-c1bdcf789ea9"))
     (instances
       (project "nicklink"
         (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
-          (reference "#PWR68")
+          (reference "#PWR70")
           (unit 1)))))
   (wire
     (pts
@@ -13282,7 +13512,7 @@
     (in_pos_files yes)
     (dnp no)
     (uuid "d2c662c5-20b2-5ab6-9486-b6873dc96c98")
-    (property "Reference" "#PWR69"
+    (property "Reference" "#PWR71"
       (at 353.06 71.12 0)
       (hide yes)
       (show_name no)
@@ -13322,11 +13552,11 @@
         (font
           (size 1.27 1.27))))
     (pin "1"
-      (uuid "32fcb3b2-0671-5ecd-be1e-6331ee493394"))
+      (uuid "1623fcff-4607-5e88-b0ab-aee2b6530331"))
     (instances
       (project "nicklink"
         (path "/40aeb617-1e9c-49dd-a464-61de3f0156c5"
-          (reference "#PWR69")
+          (reference "#PWR71")
           (unit 1)))))
   (wire
     (pts
@@ -13521,14 +13751,14 @@
     (uuid "aff651c4-4f0e-5709-b844-7bfd0bb5b27a"))
   (rectangle
     (start 274.99 161.6)
-    (end 391.92 215.59)
+    (end 402.34 215.59)
     (stroke
       (width 0.1524)
       (type dash))
     (fill
       (type none))
-    (uuid "d31ff45e-a24c-5b63-8045-824fad579428"))
-  (text "IMU (I2C1 0X6A, INT1 -> PA0)"
+    (uuid "e44f62d9-ecf0-5d4d-9269-205443165a72"))
+  (text "IMU (I2C1 0X6A, INT1 -> 10K -> PA0)"
     (exclude_from_sim no)
     (at 276.26 162.8745 0)
     (effects
@@ -13536,7 +13766,7 @@
         (size 1.778 1.778)
         (bold yes))
       (justify left top))
-    (uuid "639b1f2c-a79d-577b-9b0e-166855cf4097"))
+    (uuid "9c096aa1-b65f-56e8-968a-63ce2f8daf0c"))
   (text "NOTES\n1. Every header pin is labelled beside it on the front silkscreen (A9 = PA9); the back has a function cheat sheet.\n2. CAN (PB8 RX / PB9 TX, remapped) is logic level only: it needs an external CAN transceiver.\n3. USB and CAN cannot run at the same time on the STM32F103 (they share the packet RAM).\n4. The 3V3 header pins are outputs of the on-board LDO (U2); do not back-drive them from another supply.\n5. The 5V header pin is USB VBUS after the Schottky D2; it can also be used as a 5 V input (max 5.5 V)."
     (exclude_from_sim no)
     (at 20.32 205.74 0)

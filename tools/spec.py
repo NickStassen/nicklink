@@ -65,9 +65,9 @@ PARTS = {
 
     # --- Power --------------------------------------------------------------
     "D2": ("Device:D_Schottky", "1N5819WS", "Diode_SMD:D_SOD-323", {"1": "+5V", "2": "VBUS"}, {"Note": "Blocks back-feed from the 5V header pin into USB"}),  # 1=K, 2=A
-    "C12": ("Device:C", "1u", "Capacitor_SMD:C_0402_1005Metric", {"1": "+5V", "2": "GND"}, {"Note": "LDO input"}),
+    "C12": ("Device:C", "10u", "Capacitor_SMD:C_0603_1608Metric", {"1": "+5V", "2": "GND"}, {"Note": "LDO input + VBUS hot-plug bulk (USB allows <= 10 uF)"}),
     # TLV75533PDRV (WSON-6 2x2): 1 OUT, 3 GND, 4 EN, 6 IN, 7 exposed pad (GND), 2/5 NC
-    "U2": ("Regulator_Linear:TLV75533PDRV", "TLV75533PDRV", "Package_SON:WSON-6-1EP_2x2mm_P0.65mm_EP1x1.6mm", {
+    "U2": ("Regulator_Linear:TLV75533PDRV", "TLV75533PDRV", "nicklink:WSON-6-1EP_2x2mm_P0.65mm_EP1x1.6mm_ThermalVias03", {
         "1": "+3.3V", "3": "GND", "4": "+5V", "6": "+5V", "7": "GND",
     }, {}),
     "C8": ("Device:C", "1u", "Capacitor_SMD:C_0402_1005Metric", {"1": "+3.3V", "2": "GND"}, {"Note": "LDO output"}),
@@ -83,14 +83,18 @@ PARTS = {
     "U4": ("nicklink:LSM6DSV16X", "LSM6DSV16X", "nicklink:LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y_NoSilk", {
         "1": "GND",          # SDO/SA0 low -> I2C address 0x6A
         "2": "GND", "3": "GND",  # SDx/SCx aux bus unused
-        "4": "PA0",          # INT1
+        "4": "IMU_INT1",     # INT1 -> R10 -> PA0 (INT1 drives low by default)
         "5": "+3.3V", "8": "+3.3V",  # VDDIO, VDD
         "6": "GND", "7": "GND",
+        "10": "+3.3V", "11": "+3.3V",  # OCS_Aux/SDO_Aux: "connect to Vdd_IO or leave unconnected" (DS13510 Table 2)
         "12": "+3.3V",       # CS high -> I2C mode
         "13": "PB6", "14": "PB7",
     }, {"MPN": "ST LSM6DSV16XTR"}),
-    "C14": ("Device:C", "100n", "Capacitor_SMD:C_0402_1005Metric", {"1": "+3.3V", "2": "GND"}, {"Note": "IMU VDD"}),
-    "C15": ("Device:C", "100n", "Capacitor_SMD:C_0402_1005Metric", {"1": "+3.3V", "2": "GND"}, {"Note": "IMU VDDIO"}),
+    "C14": ("Device:C", "100n", "Capacitor_SMD:C_0402_1005Metric", {"1": "+3.3V", "2": "GND"}, {"Note": "IMU VDD/VDDIO"}),
+    "C15": ("Device:C", "100n", "Capacitor_SMD:C_0402_1005Metric", {"1": "+3.3V", "2": "GND"}, {"Note": "IMU VDD/VDDIO"}),
+    # INT1 is "output forced to ground" from power-up until firmware configures the IMU;
+    # 10k keeps that from fighting whatever a user connects to A0 (it becomes a weak pull-down).
+    "R10": ("Device:R", "10k", "Resistor_SMD:R_0402_1005Metric", {"1": "IMU_INT1", "2": "PA0"}, {"Note": "IMU INT1 isolation"}),
     "R7": ("Device:R", "4k7", "Resistor_SMD:R_0402_1005Metric", {"1": "+3.3V", "2": "PB6"}, {"Note": "I2C1 SCL pull-up"}),
     "R9": ("Device:R", "4k7", "Resistor_SMD:R_0402_1005Metric", {"1": "+3.3V", "2": "PB7"}, {"Note": "I2C1 SDA pull-up"}),
 
@@ -118,7 +122,7 @@ PARTS = {
 LCSC = {
     "U1": "C8734", "U2": "C2861750", "U3": "C15999", "D2": "C191023", "J2": "C7095263",
     "Y1": "C2682775", "C10": "C1548", "C11": "C1548", "SW1": "C231329", "SW2": "C231329",
-    "FB1": "C85812", "C5": "C19702",
+    "FB1": "C85812", "C5": "C19702", "C12": "C19702",
     "U4": "C5267406", "D1": "C264407", "D3": "C74338",
 }
 for _ref, (_sym, _val, _fp, _pins, _extra) in PARTS.items():
@@ -139,7 +143,7 @@ ALIASES = {
     "PA13": "SWDIO", "PA14": "SWCLK", "PB3": "SWO", "PA9": "UART1 TX", "PA10": "UART1 RX",
     "PB6": "I2C1 SCL (4.7k pull-up, IMU)", "PB7": "I2C1 SDA (4.7k pull-up, IMU)", "PB8": "CAN RX (remap)", "PB9": "CAN TX (remap)",
     "PA5": "SPI1 SCK", "PA6": "SPI1 MISO", "PA7": "SPI1 MOSI", "PB2": "BOOT1, 10k pull-down",
-    "PC13": "user LED (active low)", "PA2": "UART2 TX", "PA3": "UART2 RX", "PA0": "WKUP / IMU INT1",
+    "PC13": "user LED (active low)", "PA2": "UART2 TX", "PA3": "UART2 RX", "PA0": "WKUP / IMU INT1 via 10k",
     "PB10": "I2C2 SCL / UART3 TX", "PB11": "I2C2 SDA / UART3 RX",
     "PB13": "SPI2 SCK", "PB14": "SPI2 MISO", "PB15": "SPI2 MOSI",
 }

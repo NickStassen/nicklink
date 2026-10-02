@@ -53,24 +53,24 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 | 7 | `A13` PA13 / SWDIO | `B11` PB11 / I2C2 SDA / UART3 RX |
 | 8 | `A14` PA14 / SWCLK | `B10` PB10 / I2C2 SCL / UART3 TX |
 | 9 | `B3` PB3 / SWO | `B2` PB2 / BOOT1, 10k pull-down |
-| 10 | `RST` NRST (reset, active low) | `B1` PB1 (3.3 V only) |
+| 10 | `RST` NRST (reset, active low; 3.3 V only) | `B1` PB1 (3.3 V only) |
 | 11 | `B4` PB4 | `B0` PB0 (3.3 V only) |
 | 12 | `B5` PB5 (3.3 V only) | `A7` PA7 / SPI1 MOSI (3.3 V only) |
-| 13 | `B6` PB6 / I2C1 SCL (4.7k pull-up, IMU) | `A6` PA6 / SPI1 MISO (3.3 V only) |
-| 14 | `B7` PB7 / I2C1 SDA (4.7k pull-up, IMU) | `A5` PA5 / SPI1 SCK (3.3 V only) |
+| 13 | `B6` PB6 / I2C1 SCL (4.7k pull-up, IMU; 3.3 V only) | `A6` PA6 / SPI1 MISO (3.3 V only) |
+| 14 | `B7` PB7 / I2C1 SDA (4.7k pull-up, IMU; 3.3 V only) | `A5` PA5 / SPI1 SCK (3.3 V only) |
 | 15 | `B8` PB8 / CAN RX (remap) | `A4` PA4 (3.3 V only) |
 | 16 | `B9` PB9 / CAN TX (remap) | `A3` PA3 / UART2 RX (3.3 V only) |
 | 17 | `C13` PC13 / user LED (3.3 V only) | `A2` PA2 / UART2 TX (3.3 V only) |
 | 18 | `C14` PC14 (3.3 V only) | `A1` PA1 (3.3 V only) |
-| 19 | `C15` PC15 (3.3 V only) | `A0` PA0 / WKUP / IMU INT1 (3.3 V only) |
+| 19 | `C15` PC15 (3.3 V only) | `A0` PA0 / WKUP / IMU INT1 via 10k (3.3 V only) |
 | 20 | `GND` | `3V3` 3V3 regulated output |
 
-Pins not marked "3.3 V only" are 5 V tolerant (FT) while the board is powered. PA0–PA7, PB0 and PB1 are also ADC inputs. [`docs/pinout.csv`](docs/pinout.csv) has the same table in machine-readable form.
+Pins not marked "3.3 V only" are 5 V tolerant (FT) while the board is powered. B6/B7 are FT on the MCU but not at board level, because the IMU on that bus is limited to 3.6 V. PA1–PA7, PB0 and PB1 are also ADC inputs. PA0 is too, but it has the IMU interrupt on it (below). [`docs/pinout.csv`](docs/pinout.csv) has the same table in machine-readable form.
 
 - **SWD:** J3.1 3V3 (target voltage sense), J3.2 GND, J3.7 SWDIO, J3.8 SWCLK, J3.10 NRST, optional J3.9 SWO.
 - **Serial bootloader:** hold BOOT, tap RESET, release BOOT, then use USART1 on J3.3 (TX) / J3.4 (RX). This is ST's factory USART bootloader; the F103 has no factory USB DFU bootloader.
-- **I2C1 / IMU:** I2C1 has on-board 4.7 kΩ pull-ups. External I2C modules can share the bus as long as they avoid address 0x6A; if they bring their own pull-ups, keep the combined value above about 1.5 kΩ.
-- **A0 is driven by the IMU's INT1** (push-pull, active high by default). Don't drive A0 from outside unless you first set INT1 to open-drain (`PP_OD`, register IF_CFG 03h bit 3).
+- **I2C1 / IMU:** I2C1 has on-board 4.7 kΩ pull-ups. External I2C modules can share the bus as long as they avoid address 0x6A and **pull up to 3.3 V only**. A 5 V module needs a level shifter, because the IMU's SCL/SDA limit is 3.6 V. If modules bring their own pull-ups, keep the combined value above about 1.5 kΩ.
+- **A0 has the IMU's INT1 on it through 10 kΩ.** INT1 is driven low from power-up until firmware configures the IMU, so A0 sees a weak 10 kΩ pull-down by default, and the interrupt is active high once enabled. You can still drive A0 from outside. For a high-impedance A0 (ADC or open signals), set INT1 to open-drain (`PP_OD`, IF_CFG 03h bit 3).
 - **User LED:** PC13 low turns it on. PC13–PC15 are low-drive pins (sink ≤3 mA, ≤2 MHz) and must not source current.
 
 ## IMU
@@ -85,12 +85,13 @@ Features useful here:
 
 Firmware starting points: ST's `lsm6dsv16x-pid` platform-independent driver and the STM32duino `STM32duino-LSM6DSV16X` library. Bring-up check: WHO_AM_I (0Fh) should read **0x70**.
 
-Placement follows ST's LGA guidance: the IMU sits on the top side, with no copper or vias under the package on that layer. It sits in the right channel beside the MCU, below the RESET button, away from the regulator's heat and USB cable strain. The datasheet's ~10 mm distance from screws can't be met on a board this small. Mount on standoffs without over-tightening, since board flex shows up as accelerometer offset.
+Placement follows ST's LGA guidance: the IMU sits on the top side, with no ground pour or vias under the package, and only short pad-to-pad links at its edges. The local wiring is pre-routed; see docs/REVIEW.md. It sits in the right channel beside the MCU, below the RESET button, away from the regulator's heat and USB cable strain. ST's guidance of about 10 mm from screws (in its MEMS layout notes) can't be met on a board this small; H4 is about 2.4 mm from the IMU body. Mount on standoffs without over-tightening, since board flex shows up as accelerometer offset.
 
 ## Power
 
 - **5V pin (J1.1):** USB VBUS minus about 0.3–0.4 V when USB powers the board. It can also power the board: apply 4.5–5.5 V there. **Do not exceed 5.5 V**; the regulator's absolute maximum is 6 V. The Schottky carries at most about 400 mA (thermal limit).
-- **3V3 pins (J3.1, J1.20):** LDO outputs. Budget about **250 mA total including the MCU**. That figure is an estimate for this two-layer board, not a measured limit. **Do not feed 3V3 in from outside**: the TLV755 has no reverse-current protection.
+- **3V3 pins (J3.1, J1.20):** LDO outputs. Budget about **250 mA total including the MCU** when powered from USB. That figure is an estimate for this two-layer board (with two thermal vias under the LDO), not a measured limit. From a 5.5 V input on J1.1, keep below about 200 mA. **Do not feed 3V3 in from outside**: the TLV755 has no reverse-current protection. J1.1 has no fuse or reverse-polarity protection, and its 5V and GND pins are adjacent.
+- **Powering from J1.1 with USB unplugged:** the always-on D+ pull-up back-feeds a little voltage into VBUS through the ESD part. A strict USB-C (C-to-C) host may then refuse to attach until the board is powered from USB. An A-to-C cable is fine.
 
 ## Mounting
 
@@ -129,8 +130,8 @@ The board is checked against JLCPCB's published 2-layer and assembly limits ([PC
 |---|---|
 | Trace / space ≥ 0.10 / 0.10 mm | ≥ 0.112 mm tracks (0.15 mm default), 0.13 mm clearance |
 | Via ≥ 0.15 mm drill / 0.25 mm diameter | 0.3 / 0.6 mm |
-| Component PTH annular ring ≥ 0.18 mm | ≥ 0.18 mm: the USB4085 pads are enlarged from GCT's 0.40/0.65 mm (0.125 mm ring) to a 0.36 mm hole in a 0.72 mm pad. That still fits the 0.22 × 0.15 mm pins. |
-| Pad hole-to-hole ≥ 0.45 mm; plated slot ≥ 0.5 mm | ≥ 0.49 mm; 0.6 mm shield slots |
+| Component PTH annular ring ≥ 0.18 mm | ≥ 0.18 mm. The USB4085 pads change from GCT's 0.40/0.65 mm (0.125 mm ring) to a 0.38 mm hole in a 0.74 mm pad, which stays within GCT's 0.40 ± 0.05 mm hole spec for the 0.22 × 0.15 mm pins. The pad gap is 0.11 mm, above JLC's 0.10 mm. The LDO's two thermal vias are 0.3 mm in 0.66 mm pads. |
+| Pad hole-to-hole ≥ 0.45 mm; plated slot ≥ 0.5 mm | ≥ 0.47 mm (USB4085 0.85 mm pitch, 0.38 mm holes); 0.6 mm shield slots |
 | SMD pad to pad ≥ 0.15 mm | ≥ 0.15 mm (the IMU's LGA is the tightest) |
 | Copper to routed edge ≥ 0.2 mm (≥ 0.3 mm for Economic assembly) | 0.3 mm |
 | Solder-mask web ≥ 0.10 mm | 0.10 mm minimum checked |
@@ -138,7 +139,12 @@ The board is checked against JLCPCB's published 2-layer and assembly limits ([PC
 | Component bodies ≥ 0.3 mm apart, IPC-7351B medium density | KiCad library courtyards (IPC nominal), none overlapping |
 | Economic assembly: components ≥ 0.3 mm from edge, pitch ≥ 0.4 mm, passives ≥ 0201 | SMD bodies ≥ 1 mm from the edge; finest pitch 0.5 mm; 0402 passives |
 
-**Ordering:** the board is under 70 × 70 mm, so order **Economic PCBA**. Let JLC add **edge rails and fiducials**: they need 5 mm rails, and fiducials need 3.85 mm from the edge, which wouldn't fit on the board itself. Alternatively, panelize. The through-hole parts (USB-C, headers) are hand-soldered.
+**Ordering:**
+- Under 70 × 70 mm, so order **Economic PCBA**. Economic needs no on-board fiducials or rails. JLC can add edge rails and fiducials if you choose Standard or panelize; on-board fiducials would need 3.85 mm from the edge.
+- Choose an **ENIG** finish: the 0.5 mm-pitch LGA and LQFP solder more reliably on a flat pad than on HASL.
+- The CPL rotations are corrected for JLC's footprints (`JLC_ROT` in `tools/fab.sh`: LQFP-48 −90°, SOT-666 and LGA-14 +180°). Still check the pin-1 marks in JLC's placement preview.
+- The through-hole parts (USB-C, headers) are hand-soldered. The USB-C GND pins use thermal reliefs to make that easier.
+- Signal tracks pass under the M2 screw heads (under solder mask, vias tented). Use plastic standoffs or washers if you clamp with metal hardware.
 
 ## Validation and fabrication
 

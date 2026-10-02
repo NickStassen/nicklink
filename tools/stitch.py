@@ -34,7 +34,7 @@ for fp in b.GetFootprints():
     for p in fp.Pads():
         if p.HasHole():
             pos = p.GetPosition()
-            holes.append((pcbnew.ToMM(pos.x), pcbnew.ToMM(pos.y), pcbnew.ToMM(max(p.GetSize(pcbnew.F_Cu).x, p.GetDrillSize().x)) / 2))
+            holes.append((pcbnew.ToMM(pos.x), pcbnew.ToMM(pos.y), pcbnew.ToMM(max(p.GetSize(pcbnew.F_Cu).x, p.GetSize(pcbnew.F_Cu).y, p.GetDrillSize().x, p.GetDrillSize().y)) / 2))  # oval slots: long axis
 # keep vias off silkscreen text so labels stay readable
 texts = []
 for item in list(b.GetDrawings()) + [g for fp in b.GetFootprints() for g in fp.GraphicalItems()]:

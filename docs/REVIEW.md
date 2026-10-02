@@ -29,7 +29,7 @@ The connections were checked against datasheet DS13510 (see `tools/imu_research.
 - A top-copper keep-out covers the area inside the IMU's pad ring, per ST's LGA guidance: no tracks, vias or pour under the package.
 - **Deviation:** ST suggests about 10 mm from screws. Here it is about 5 mm (H4), because the board is only 25.5 mm tall. Mount without over-tightening.
 - **Crystal nets are now pre-routed** as locked top-layer tracks (HSE_IN 8.1 mm, HSE_OUT 5.1 mm, no vias), so autoroute variation can't push them onto vias.
-- **ESD channels swapped:** USB D+ uses the USBLC6's I/O2 channel and D− uses I/O1. The two channels are identical, and this order means D+ and D− no longer cross at the MCU. USB D+/D− are about 11 / 10 mm.
+- **ESD channels swapped:** USB D+ uses the USBLC6's I/O2 channel and D− uses I/O1. The two channels are identical, and this order means D+ and D− no longer cross at the MCU. USB D+ is 14.9 mm with no vias and D− is 12.8 mm with one via, including the A/B row ties and the pull-up branch.
 - **Minimum track width lowered from 0.13 mm to 0.10 mm.** This covers Freerouting's 0.112 mm neck-downs at fine-pitch pads, which are within JLC's standard 2-layer capability. The default 0.15 mm signal width is unchanged.
 - Sixteen small parts (passives near USB, the I2C pull-ups, the IMU, its caps and RESET) carry ≤ 0.1 mm offsets, found by a seeded search (`NICKLINK_SEED=13`). Freerouting's result is very sensitive to placement, and these offsets give 100% routing with short crystal and USB nets.
 
@@ -38,6 +38,38 @@ The connections were checked against datasheet DS13510 (see `tools/imu_research.
 - Edge clearance raised to 0.3 mm (Economic PCBA).
 - Silkscreen text 1.0 mm tall and lines 0.15 mm wide. The label strips grew from 1.2 to 1.4 mm, which adds 0.8 mm of board width.
 - Silk-to-pad clearance 0.15 mm and a 0.10 mm minimum solder-mask web.
+
+## Five-reviewer audit (2026-10-01) and fixes
+
+Five independent reviewers checked v1.3 at commit a913740, one area each. They checked against datasheets, the GCT drawing, JLC's own EasyEDA footprints and the board data. I re-verified the key claims (INT1 default state in DS13510; the EasyEDA pin-1 positions) before changing anything.
+
+| Area | Grade | Must-fix findings |
+|---|---|---|
+| Power / protection | C | U3 CPL rotation would short VBUS; LDO output cap 19 mm from OUT |
+| MCU core / clock | B | U1 CPL rotation 90° off; weak VDD/VDDA decoupling layout |
+| USB-C / data | B | 0.36 mm holes too tight for the receptacle tails |
+| IMU / headers / labels | B | INT1 holds A0 low from power-up; PB6/PB7 and NRST mislabelled 5 V tolerant |
+| Fab / BOM / CPL / mechanics | C+ | CPL rotations for U1/U3/U4 wrong vs JLC's footprints; USB hole fit |
+
+**Fixed:**
+- **CPL rotations:** `tools/fab.sh` adds per-footprint JLC corrections (LQFP-48 −90°, SOT-666 +180°, LGA-14 +180°), checked against JLC's EasyEDA footprints. U1 = 0, U3 = 90, U4 = 180.
+- **LDO:** output cap C8 sits next to U2 OUT (0.95 mm, top layer). C12 becomes 10 µF 0603 for input decoupling and USB hot-plug damping. Two 0.3 mm thermal vias go under the exposed pad (project footprint `WSON-6-…_ThermalVias03`).
+- **IMU INT1:** goes to A0 through a new 10 kΩ resistor, R10. INT1's power-up "forced to ground" state is now only a weak pull-down on A0.
+- **USB4085:** 0.38 mm holes in 0.74 mm pads. That is inside GCT's 0.40 ± 0.05 mm spec and keeps JLC's 0.18 mm ring. The 0.11 mm pad gap is covered by a footprint-scoped DRC rule; JLC's minimum is 0.10 mm. The GND pins use thermal reliefs for hand soldering.
+- **IMU layout:**
+  - No pour under the package body; the GND pads are reached by traces (TN0018).
+  - The local fan-out is pre-routed: GND vias above and below the package, a 3V3 rail under it joining VDDIO, VDD and the 3V3 pads of FB1, C14 and C15. The bottom-layer GND link runs in under the MCU.
+  - OCS_Aux/SDO_Aux are tied to VDDIO (the datasheet allows this) to give CS a short path to VDD.
+- **VDDA:** C6 and C7 are next to the VDDA pin; C9 (NRST) is after them.
+- **Stitching:** vias now respect the long axis of the USB shell slots.
+- **Docs:** PB6/PB7 (IMU 3.6 V limit) and NRST are marked 3.3 V only. I2C pull-ups must go to 3.3 V only. Also added: ENIG finish, plastic hardware under the screw heads, and the D+ back-feed behaviour when powered from J1.1.
+- **Layout:** the MCU and its clock/decoupling group sit 0.25 mm left of centre, so fan-out vias fit between the MCU's right pads and the IMU/RESET column.
+
+**Known limitations, not changed:**
+- C13 (the USBLC6 VBUS decoupler) can't sit at U3's VBUS pin, because D+/D− box that pin in. The internal Zener still clamps.
+- The C2 (VDD pin 24) ground return is long.
+- No reverse-polarity protection or fuse on J1.1.
+- The green user LED (InGaN at about 0.4 mA) is dim; R6 could drop to about 680 Ω.
 
 **Verification** (KiCad 10.0.6): ERC 0 errors / 0 warnings; DRC 0 violations, 0 unconnected, 0 schematic-parity issues (`checks/`).
 
@@ -101,8 +133,8 @@ Critical nets, from `tools/netreport.py`:
 | Net | Routing |
 |---|---|
 | HSE_IN / HSE_OUT | 6.0 / 4.2 mm, top layer only, no vias |
-| USB_D+ / USB_D− | 10.9 mm (top only) / 15.6 mm (2 vias), including the pull-up branch. Fine for 12 Mbit/s full speed; not an impedance-controlled pair. |
-| VDDA | through the 0402 ferrite, 100 nF + 1 µF at the pin |
+| USB_D+ / USB_D− | v1.2 numbers; see the v1.3 section for the current board. Fine for 12 Mbit/s full speed; not an impedance-controlled pair. |
+| VDDA | through the 0402 ferrite to 100 nF + 1 µF (v1.3 moves both next to the VDDA pin) |
 
 ## Verification
 
