@@ -39,7 +39,7 @@ tools/fab.sh         # gerbers, drills, BOM/CPL, PDFs, renders, checks/
 ## Routing notes
 
 - `placement.py` `PREROUTE` holds locked tracks laid before autorouting (currently the crystal nets), so the critical nets don't depend on Freerouting.
-- Freerouting's result is very sensitive to placement. If a placement change leaves nets unrouted, run a few `tools/route_try.sh s<n> "" <n>` in parallel (at most about 4, since each Freerouting JVM needs a few GB of RAM). Each one nudges small parts by up to ±0.1 mm (`NICKLINK_SEED`), then routes, stitches and runs DRC. Bake the offsets of a clean seed into `PLACE`; the current layout uses seed 13.
+- Freerouting's result is very sensitive to placement. If a placement change leaves nets unrouted, run a few `tools/route_try.sh s<n> "" <n>` in parallel (at most about 4, since each Freerouting JVM needs a few GB of RAM). Each one nudges small parts by up to ±0.1 mm (`NICKLINK_SEED`), then routes, stitches and runs DRC. Bake the offsets of a clean seed into `PLACE`; the current layout uses seed 3 (post-review). Hand-routed nets live in `PREROUTE`, `PREROUTE_B` and `PREVIAS` (crystal, IMU fan-out).
 - `build_all.sh` retries the route, stitch and DRC step (`TRIES`, default 3) because Freerouting's optimizer is time-limited.
 
 ## Typical edits

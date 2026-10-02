@@ -31,7 +31,7 @@ The connections were checked against datasheet DS13510 (see `tools/imu_research.
 - **Crystal nets are now pre-routed** as locked top-layer tracks (HSE_IN 8.1 mm, HSE_OUT 5.1 mm, no vias), so autoroute variation can't push them onto vias.
 - **ESD channels swapped:** USB D+ uses the USBLC6's I/O2 channel and D− uses I/O1. The two channels are identical, and this order means D+ and D− no longer cross at the MCU. USB D+ is 14.9 mm with no vias and D− is 12.8 mm with one via, including the A/B row ties and the pull-up branch.
 - **Minimum track width lowered from 0.13 mm to 0.10 mm.** This covers Freerouting's 0.112 mm neck-downs at fine-pitch pads, which are within JLC's standard 2-layer capability. The default 0.15 mm signal width is unchanged.
-- Sixteen small parts (passives near USB, the I2C pull-ups, the IMU, its caps and RESET) carry ≤ 0.1 mm offsets, found by a seeded search (`NICKLINK_SEED=13`). Freerouting's result is very sensitive to placement, and these offsets give 100% routing with short crystal and USB nets.
+- Sixteen small parts (passives near USB, the I2C pull-ups, the IMU, its caps and RESET) carry ≤ 0.1 mm offsets, found by a seeded search (`NICKLINK_SEED=13`; the post-review layout uses seed 3). Freerouting's result is very sensitive to placement, and these offsets give 100% routing with short crystal and USB nets.
 
 **JLCPCB rules** (README, "JLCPCB design rules"): v1.3 is checked against JLC's published limits via the board setup and `nicklink.kicad_dru`. Changes made to comply:
 - USB4085 pads enlarged to a 0.18 mm annular ring.
