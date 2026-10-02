@@ -177,7 +177,7 @@ The board is checked against JLCPCB's published 2-layer and assembly limits ([PC
 
 KiCad 10.0.6: **0 DRC violations, 0 unconnected items, 0 schematic-parity issues, 0 ERC errors or warnings** (reports in [`checks/`](checks/)). Every pin in the schematic netlist is checked against `tools/spec.py`. These checks cover connectivity and geometry. This revision has not been built yet; it needs a prototype and bench testing.
 
-The BOM carries verified LCSC part numbers for JLCPCB SMD assembly. The USB-C connector and pin headers are through-hole parts to hand-solder. Several parts are JLC "Extended" parts, which add a per-part loading fee; see [`tools/parts_research.md`](tools/parts_research.md).
+The BOM carries verified LCSC part numbers for JLCPCB SMD assembly. To order, upload `fabrication/v1.3/nicklink_gerbers.zip`, then for assembly `nicklink_BOM_JLC.csv` (SMD parts only) and `nicklink_CPL.csv`. The USB-C connector and pin headers are through-hole parts to hand-solder. Several parts are JLC "Extended" parts, which add a per-part loading fee; see [`tools/parts_research.md`](tools/parts_research.md).
 
 Bring-up:
 

@@ -2,6 +2,7 @@
 # Fabrication outputs for NickLink from the root nicklink.kicad_pcb/.kicad_sch:
 #   fabrication/$REV/gerbers/   Gerbers + job file, PTH/NPTH Excellon + drill map PDFs
 #   fabrication/$REV/nicklink_BOM.csv, nicklink_CPL.csv   (JLCPCB format)
+#   fabrication/$REV/nicklink_gerbers.zip, nicklink_BOM_JLC.csv   (upload these + the CPL to JLC)
 #   docs/assembly.pdf, docs/copper.pdf, docs/images/top.png, bottom.png
 #   checks/final-drc.json, checks/final-erc.rpt
 # Fails if DRC or ERC is not clean, or any output check fails.
@@ -68,6 +69,14 @@ for (val, fp), parts in groups.items():
     rows.append([val, ",".join(refs), fp.split(":")[-1], lcsc.pop(), "; ".join(notes), "THT hand" if tht else "SMD yes"])
 with open(f"{out}/nicklink_BOM.csv", "w", newline="") as f:
     w = csv.writer(f); w.writerow(["Comment", "Designator", "Footprint", "LCSC Part #", "Notes", "Assemble"]); w.writerows(rows)
+# JLC upload set: BOM with only the parts JLC assembles (THT is hand-soldered), gerbers + drills zipped
+with open(f"{out}/nicklink_BOM_JLC.csv", "w", newline="") as f:
+    w = csv.writer(f); w.writerow(["Comment", "Designator", "Footprint", "LCSC Part #"]); w.writerows(r[:4] for r in rows if r[5] == "SMD yes")
+import os, zipfile
+with zipfile.ZipFile(f"{out}/nicklink_gerbers.zip", "w", zipfile.ZIP_DEFLATED) as z:
+    for n in sorted(os.listdir(f"{out}/gerbers")):
+        if not n.endswith(".pdf"):
+            z.write(f"{out}/gerbers/{n}", n)
 
 # CPL: SMD only, origin = board lower-left. kicad pos Y and Gerber Y are both -(page Y),
 # so the Edge.Cuts Gerber min X/Y is the lower-left corner in the same frame.
