@@ -1,0 +1,23 @@
+* 08 VDDA filter: FB1 BLM15AG121SN1D + C6 100 nF + C7 1 uF (both derated at 3.3 V).
+* AC transfer 3V3 -> VDDA, 100 Hz .. 1 GHz; ideal 3V3 source (LDO output impedance and the
+*   ADC's VDDA current are not included). Ferrite model is approximate (see parts.lib).
+* Case 1 adds RD = 1 ohm in series with C7 (damping leg; Middlebrook-style) as a fix study.
+* Pass (informational): attenuation >= 20 dB above 10 MHz; the LC resonance peak is reported
+*   (MARGIN if > 6 dB gain, since 3V3 noise near it would be amplified on VDDA).
+.include models/parts.lib
+.include models/caps.lib
+.param RD=1m
+V33 p3 0 DC 3.3 AC 1
+XFB1 p3 p3a BLM15AG121
+XC6 p3a 0 C100N0402 VB=3.3
+XC7 p3a n7 C1U0402 VB=3.3
+RD n7 0 {RD}
+.control
+ac dec 100 100 1g
+wrdata results/vdda_ac.dat vdb(p3a)
+alterparam RD = 1
+reset
+ac dec 100 100 1g
+wrdata results/vdda_ac_damped.dat vdb(p3a)
+.endc
+.end

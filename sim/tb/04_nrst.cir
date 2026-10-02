@@ -1,0 +1,52 @@
+* 04 NRST power-on and button behaviour, BOOT0 button.
+* Circuit: VSYS stepped 0 -> 4.7 V at t = 0 -> TLV75533, current spec.py rail (NL_RAIL_V13); NRST = internal
+*   pull-up RPU (30/40/50 kohm, STM32F103 datasheet min/typ/max) to 3V3, C9 100 nF X7R, 5 pF
+*   pin; SW1 RESET to GND closed 30.0..32.0 ms; internal reset pulse generator modelled as a
+*   50 ohm pull-down (assumed) for 20 us at 50 ms (datasheet: >= 20 us per internal reset).
+*   BOOT0: R1 10 k to GND, SW2 to 3V3 closed 60..62 ms.
+* Datasheet limits (STM32F103x8 DS5319, NRST pin): VIL <= 0.8 V, VIH >= 2.0 V, filtered
+*   < 100 ns, a pulse >= 300 ns is always recognised; POR rising 1.84/1.92/2.0 V and internal
+*   reset temporisation tRSTTEMPO 1/2.5/4.5 ms.
+* Pass: button press takes NRST < 0.8 V in < 1 us and holds >= 300 ns; NRST release (2.0 V)
+*   after power-up within 20 ms (boot-time budget, assumed); internal 20 us pulse reaches
+*   < 0.8 V; BOOT0 >= 2.0 V pressed, < 0.8 V released.
+.include models/parts.lib
+.include models/caps.lib
+.include models/TLV75533P_TRANS.lib
+.include models/board.lib
+.param RPU=40k
+V5 p5s 0 PWL(0 0 10u 4.7)
+Rsrc p5s p5 0.05
+XC12 p5 0 MLCC C0=4.7u V0=3.1 ESR=10m ESL=0.3n VB=5
+XR p5 p3 p3a NL_RAIL_V13
+RL p3 0 330
+RPU p3 nrst {RPU}
+XC9 nrst 0 C100N0402 VB=3.3
+Cpin nrst 0 5p
+Vsw1 c1 0 PWL(0 0 30m 0 30.0001m 1 32m 1 32.0001m 0)
+S1 nrst 0 c1 0 SWX
+Vint ci 0 PWL(0 0 50m 0 50.00001m 1 50.02m 1 50.02001m 0)
+Sint nrst nint ci 0 SWX
+Rint nint 0 50
+R1 boot0 0 10k
+Vsw2 c2 0 PWL(0 0 60m 0 60.0001m 1 62m 1 62.0001m 0)
+S2 p3 boot0 c2 0 SWX
+Cb0 boot0 0 5p
+.ic v(xr.xu2.u1_n08530)=0
+.tran 0.1u 70m 0 5u
+.control
+compose vr values 30k 40k 50k
+let k = 0
+while k < length(vr)
+  let x = vr[k]
+  alterparam RPU = $&x
+  reset
+  run
+  set ks = "$&k"
+  echo "CASE nrst_{$ks} RPU=$&x"
+  wrdata results/nrst_{$ks}.dat v(p3) v(nrst) v(boot0)
+  destroy all
+  let k = k + 1
+end
+.endc
+.end

@@ -1,0 +1,71 @@
+* 11 Hot-plug of the CURRENT spec.py power path (v1.3 after the hot-plug rework).
+* VBUS (C13 100n, U3 USBLC6, R2+R11 6.9 k D+ divider/bleed) -> R12 (1R 0805 as built; swept
+*   1.0 / 1.5 / 2.2 ohm) -> VBUS_D -> D2 1N5819WS -> VSYS = LDO IN (C12 4.7 uF 0402 10 V X5R,
+*   V0 = 3.1 assumed: 28 % at 5 V) -> F1 PTC 0.3 ohm -> Q1 -> J1.1 (open).
+* 3V3: NL_RAIL_V13 (board.lib: C4 4.7u 0402, C8 1u, 5x 100n, FB1 + C6/C7; no C5). 330 ohm load.
+* Same source/cable/clamp corners as 01 (5.5 V step; 0.5/1 uH x 0.1/0.3 ohm; BV 6/9 V).
+* VARIANT 0: v1.3 current, R12 = 1.0 ohm (as built)
+* VARIANT 1: R12 = 1.5 ohm
+* VARIANT 2: R12 = 2.2 ohm
+* Pass (analyze.py): worst LDO IN peak <= 5.8 V; inrush (full-bias estimate) <= 50 uC;
+*   LDO IN >= 3.3 V + dropout (0.476 ohm x I, TLV755 max) at 250 / 500 mA from 4.40 / 4.75 V.
+.include models/parts.lib
+.include models/caps.lib
+.include models/TLV75533P_TRANS.lib
+.include models/board.lib
+.param VSRC=5.5 LC=1u RC=0.1 BV=6 R12=1.0
+Vs src 0 PWL(0 0 10n {VSRC})
+Vi src si 0
+Lc si c1 {LC}
+Rc c1 vbus {RC}
+XC13 vbus 0 C100N0402_NL
+XU3 vbus 0 USBLC6_VBUS BV={BV}
+Rdp vbus 0 6.9k
+R12 vbus vbus_d {R12}
+D2 vbus_d vsys D1N5819WS
+XC12 vsys 0 MLCC_NL C0=4.7u V0=3.1 ESR=10m ESL=0.3n
+XR vsys p3 p3a NL_RAIL_V13
+RL p3 0 330
+RF1 vsys nq 0.3
+RQ1 nq hdr 0.15
+Chdr hdr 0 10p
+.ic v(xr.xu2.u1_n08530)=0
+* 0.58 ms: see 01/09/10 (3V3 is up by ~0.45 ms; longer runs can stall the bias-dependent caps).
+.tran 5n 0.58m 0 50n
+.control
+compose vrs values 1.0 1.5 2.2
+compose vlc values 0.5u 0.5u 1u 1u
+compose vrc values 0.1  0.3  0.1 0.3
+compose vbv values 6 9
+let iv = 0
+while iv < length(vrs)
+  let ic = 0
+  while ic < 4
+    let ib = 0
+    while ib < 2
+      let x = vrs[iv]
+      alterparam R12 = $&x
+      let x = vlc[ic]
+      alterparam LC = $&x
+      let x = vrc[ic]
+      alterparam RC = $&x
+      let x = vbv[ib]
+      alterparam BV = $&x
+      reset
+      run
+      let n = 100*iv + 10*ic + ib
+      set ns = "$&n"
+      let a = vlc[ic]
+      let b = vrc[ic]
+      let c = vbv[ib]
+      echo "CASE v13_{$ns} variant=$&iv LC=$&a RC=$&b BV=$&c"
+      wrdata results/v13_{$ns}.dat v(vbus) v(vsys) v(p3) i(vi)
+      destroy all
+      let ib = ib + 1
+    end
+    let ic = ic + 1
+  end
+  let iv = iv + 1
+end
+.endc
+.end

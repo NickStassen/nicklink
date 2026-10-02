@@ -34,8 +34,14 @@ for fp in b.GetFootprints():
     for p in fp.Pads():
         if p.HasHole():
             pos = p.GetPosition()
-            holes.append((pcbnew.ToMM(pos.x), pcbnew.ToMM(pos.y), pcbnew.ToMM(max(p.GetSize(pcbnew.F_Cu).x, p.GetDrillSize().x)) / 2))
+            holes.append((pcbnew.ToMM(pos.x), pcbnew.ToMM(pos.y), pcbnew.ToMM(max(p.GetSize(pcbnew.F_Cu).x, p.GetSize(pcbnew.F_Cu).y, p.GetDrillSize().x, p.GetDrillSize().y)) / 2))  # oval slots: long axis
 # keep vias off silkscreen text so labels stay readable
+smd = []  # SMD pad boxes: no stitching via in or next to a pasted pad (solder wicking)
+for fp in b.GetFootprints():
+    for p in fp.Pads():
+        if not p.HasHole():
+            bb = p.GetBoundingBox()
+            smd.append(tuple(pcbnew.ToMM(v) for v in (bb.GetLeft(), bb.GetTop(), bb.GetRight(), bb.GetBottom())))
 texts = []
 for item in list(b.GetDrawings()) + [g for fp in b.GetFootprints() for g in fp.GraphicalItems()]:
     if item.Type() == pcbnew.PCB_TEXT_T and item.GetLayer() in (pcbnew.F_SilkS, pcbnew.B_SilkS):
@@ -54,6 +60,7 @@ while y < y1 - 0.8:
         ok = all(inner[l].Contains(pt) for l in inner)
         ok = ok and all(math.dist((x, y), (hx, hy)) > hr + VIA_D / 2 + 0.35 for hx, hy, hr in holes)
         ok = ok and all(math.dist((x, y), v) > 1.1 for v in placed)
+        ok = ok and not any(px0 - VIA_D / 2 - 0.15 < x < px1 + VIA_D / 2 + 0.15 and py0 - VIA_D / 2 - 0.15 < y < py1 + VIA_D / 2 + 0.15 for px0, py0, px1, py1 in smd)
         ok = ok and not any(tx0 - 0.35 < x < tx1 + 0.35 and ty0 - 0.35 < y < ty1 + 0.35 for tx0, ty0, tx1, ty1 in texts)
         if ok:
             v = pcbnew.PCB_VIA(b)
@@ -73,13 +80,38 @@ for z, m in modes:
 removed = 0
 while True:
     pcbnew.ZONE_FILLER(b).Fill(b.Zones())
-    b.BuildConnectivity()
-    # a stitching via must sit inside the (island-removed) fill on both layers
+    # A stitching via is kept only if it joins fill islands anchored to real GND copper: islands holding a
+    # GND pad or a pre-existing GND via, extended through the kept vias. (Board connectivity treats each
+    # zone as one item, so it can't see a floating island pair held together only by stitching vias.)
+    isl = {l: [z.GetFilledPolysList(l) for z in zones if z.IsOnLayer(l)] for l in (pcbnew.F_Cu, pcbnew.B_Cu)}
+    def where(l, pos):
+        for zi, ps in enumerate(isl[l]):
+            for i in range(ps.OutlineCount()):
+                if ps.Outline(i).PointInside(pos):
+                    return (l, zi, i)
+    anchored = set()
+    for f in b.GetFootprints():
+        for p in f.Pads():
+            if p.GetNetname() == "GND":
+                for l in (pcbnew.F_Cu, pcbnew.B_Cu):
+                    if p.IsOnLayer(l):
+                        anchored.add(where(l, p.GetPosition()))
+    ids = {v.m_Uuid.AsString() for v in new}
+    for t in b.GetTracks():
+        if t.Type() == pcbnew.PCB_VIA_T and t.GetNetname() == "GND" and t.m_Uuid.AsString() not in ids:
+            anchored |= {where(l, t.GetPosition()) for l in (pcbnew.F_Cu, pcbnew.B_Cu)}
+    anchored.discard(None)
+    ends = {v.m_Uuid.AsString(): (where(pcbnew.F_Cu, v.GetPosition()), where(pcbnew.B_Cu, v.GetPosition())) for v in new}
+    grew = True
+    while grew:
+        grew = False
+        for a, c in ends.values():
+            if a and c and (a in anchored) != (c in anchored):
+                anchored |= {a, c}; grew = True
     keep, bad = [], []
     for v in new:
-        pos = v.GetPosition()
-        inside = all(any(z.GetFilledPolysList(l).Contains(pos) for z in zones if z.IsOnLayer(l)) for l in (pcbnew.F_Cu, pcbnew.B_Cu))
-        (keep if inside else bad).append(v)
+        a, c = ends[v.m_Uuid.AsString()]
+        (keep if a in anchored and c in anchored else bad).append(v)
     if not bad:
         break
     for v in bad:

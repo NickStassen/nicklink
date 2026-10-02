@@ -8,18 +8,18 @@ J3,6,PA15,A15,PA15,FT
 J3,7,PA13,A13,PA13 / SWDIO,FT
 J3,8,PA14,A14,PA14 / SWCLK,FT
 J3,9,PB3,B3,PB3 / SWO,FT
-J3,10,NRST,RST,"NRST (reset, active low)",
+J3,10,NRST,RST,"NRST (reset, active low)",3.3 V only
 J3,11,PB4,B4,PB4,FT
 J3,12,PB5,B5,PB5,3.3 V only
-J3,13,PB6,B6,PB6 / I2C1 SCL,FT
-J3,14,PB7,B7,PB7 / I2C1 SDA,FT
+J3,13,PB6,B6,"PB6 / I2C1 SCL (4.7k pull-up, IMU)",3.3 V only
+J3,14,PB7,B7,"PB7 / I2C1 SDA (4.7k pull-up, IMU)",3.3 V only
 J3,15,PB8,B8,PB8 / CAN RX (remap),FT
 J3,16,PB9,B9,PB9 / CAN TX (remap),FT
 J3,17,PC13,C13,PC13 / user LED (active low),3.3 V only
 J3,18,PC14,C14,PC14,3.3 V only
 J3,19,PC15,C15,PC15,3.3 V only
 J3,20,GND,GND,GND,
-J1,1,+5V,5V,5V (USB VBUS after Schottky; <=5.5 V input),
+J1,1,+5V,5V,"5V (USB VBUS via Schottky + 0.5 A PTC; 4.5-5.5 V input, reverse-polarity protected)",
 J1,2,GND,GND,GND,
 J1,3,PB15,B15,PB15 / SPI2 MOSI,FT
 J1,4,PB14,B14,PB14 / SPI2 MISO,FT
@@ -37,5 +37,5 @@ J1,15,PA4,A4,PA4,3.3 V only
 J1,16,PA3,A3,PA3 / UART2 RX,3.3 V only
 J1,17,PA2,A2,PA2 / UART2 TX,3.3 V only
 J1,18,PA1,A1,PA1,3.3 V only
-J1,19,PA0,A0,PA0 / WKUP,3.3 V only
+J1,19,PA0,A0,PA0 / WKUP / IMU INT1 via 10k,3.3 V only
 J1,20,+3.3V,3V3,3V3 regulated output,

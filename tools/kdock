@@ -10,5 +10,5 @@ mkdir -p "$tools/3dmodels"
 # can't write their config there when run as the host user.
 exec docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
   -v "$repo:$repo" -w "$PWD" \
-  -v "$tools/3dmodels:/usr/share/kicad/3dmodels:ro" -e KICAD10_3DMODEL_DIR=/usr/share/kicad/3dmodels \
+  -v "$tools/3dmodels:/usr/share/kicad/3dmodels:ro" -e KICAD10_3DMODEL_DIR=/usr/share/kicad/3dmodels -e RIPUP \
   "${KICAD_IMAGE:-kicad/kicad:10.0}" "$@"

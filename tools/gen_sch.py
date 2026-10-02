@@ -27,7 +27,7 @@ G = 2.54   # grid
 STUB = 2.54  # wire stub length
 FONT = 1.27
 
-TITLE = {"title": "NickLink", "date": "2026-10-01", "rev": "1.2"}
+TITLE = {"title": "NickLink", "date": "2026-10-01", "rev": spec.REV}
 
 # Library pins renumbered to match the footprint (footprint calls the USB-C
 # shield pads "SH"; stock symbol calls them "S1").
@@ -44,19 +44,24 @@ LAYOUT = {
     "MCU + decoupling": [
         ("U1", 114.3, 137.16),
         ("C1", 162.56, 121.92), ("C2", 175.26, 121.92), ("C3", 187.96, 121.92),
-        ("C4", 200.66, 121.92), ("C5", 213.36, 121.92),
+        ("C4", 200.66, 121.92),
         ("FB1", 162.56, 149.86), ("C6", 187.96, 149.86), ("C7", 200.66, 149.86),
     ],
     "USB-C + ESD": [
         ("J2", 170.18, 45.72), ("R4", 208.28, 45.72, 180), ("R5", 218.44, 45.72, 180),
-        ("R2", 228.6, 45.72), ("U3", 251.46, 45.72), ("C13", 241.3, 66.04),
+        ("R2", 228.6, 45.72), ("U3", 251.46, 45.72), ("C13", 241.3, 66.04), ("R11", 264.16, 66.04, 180),
     ],
     "Power": [
         ("D2", 292.1, 38.1, 180), ("C12", 309.88, 40.64), ("U2", 335.28, 40.64),
         ("C8", 355.6, 40.64), ("D1", 381.0, 38.1, 180), ("R3", 393.7, 60.96, 180),
+        ("F1", 292.1, 55.88, 90), ("Q1", 320.04, 55.88, 270), ("R12", 370.84, 58.42, 90),
     ],
     "User LED": [("D3", 292.1, 99.06, 180), ("R6", 332.74, 99.06, 270)],
     "Headers J1 / J3": [("J3", 299.72, 139.7), ("J1", 365.76, 139.7)],
+    "IMU (I2C1 0x6A, INT1 -> 10k -> PA0)": [
+        ("U4", 309.88, 190.5), ("R7", 342.9, 187.96), ("R9", 355.6, 187.96),
+        ("C14", 368.3, 187.96), ("C15", 381.0, 187.96), ("R10", 393.7, 187.96),
+    ],
 }
 FLAG_AREA = (284.48, 71.12)  # PWR_FLAG row (inside the Power block)
 NOTE_AT = (20.32, 205.74)
@@ -67,7 +72,7 @@ NOTES = [
     "2. CAN (PB8 RX / PB9 TX, remapped) is logic level only: it needs an external CAN transceiver.",
     "3. USB and CAN cannot run at the same time on the STM32F103 (they share the packet RAM).",
     "4. The 3V3 header pins are outputs of the on-board LDO (U2); do not back-drive them from another supply.",
-    "5. The 5V header pin is USB VBUS after the Schottky D2; it can also be used as a 5 V input (max 5.5 V).",
+    "5. 5V pin = VSYS via PTC F1 + P-FET Q1: 5 V out on USB, or 4.5-5.5 V in (reverse-protected, no OVP).",
 ]
 
 
@@ -140,7 +145,8 @@ _libtext = {}
 
 def lib_raw(lib, name):
     if lib not in _libtext:
-        with open(os.path.join(SYMDIR, lib + ".kicad_sym"), encoding="utf-8") as f:
+        path = os.path.join(os.path.dirname(__file__), "..", "nicklink.kicad_sym") if lib == "nicklink" else os.path.join(SYMDIR, lib + ".kicad_sym")
+        with open(path, encoding="utf-8") as f:
             _libtext[lib] = f.read()
     m = re.search(r'^\t\(symbol "%s"\s*$' % re.escape(name), _libtext[lib], re.M)
     if not m:

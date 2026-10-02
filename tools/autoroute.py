@@ -9,11 +9,17 @@
       (e.g. GND that is handled by pours).
   autoroute.py import <board.kicad_pcb> <in.ses> <out.kicad_pcb> <dsn>
       Imports the SES, restores the original lock flags, refills zones, saves.
+With RIPUP=1 (second pass on a routed board) only the already-locked pre-routes stay fixed:
+earlier autorouted tracks go to Freerouting as movable wiring it may rip up, and the SES replaces them.
 """
+import os
 import re
 import sys
 
 import pcbnew
+
+
+RIPUP = os.environ.get("RIPUP") == "1"
 
 
 def drop(text, head):
@@ -38,7 +44,12 @@ def export(pcb, dsn, skip):
     board = pcbnew.LoadBoard(pcb)
     unlocked = [t.m_Uuid.AsString() for t in board.GetTracks() if not t.IsLocked()]
     for t in board.GetTracks():
-        t.SetLocked(True)
+        t.SetLocked(t.IsLocked() or not RIPUP)
+    # Pour-only rule areas (tracks allowed) only matter to the zone filler, but KiCad
+    # exports every rule area as a DSN keepout; drop them so Freerouting can route there.
+    for z in list(board.Zones()):
+        if z.GetIsRuleArea() and not z.GetDoNotAllowTracks():
+            board.Delete(z)
     assert pcbnew.ExportSpecctraDSN(board, dsn), "ExportSpecctraDSN failed"
     open(dsn + ".unlock", "w").write("\n".join(unlocked))
     text = open(dsn).read()
@@ -62,7 +73,7 @@ def export(pcb, dsn, skip):
 def import_(pcb, ses, out, dsn):
     board = pcbnew.LoadBoard(pcb)
     for t in board.GetTracks():  # same locking as export, so SES import keeps them
-        t.SetLocked(True)
+        t.SetLocked(t.IsLocked() or not RIPUP)
     assert pcbnew.ImportSpecctraSES(board, ses), "ImportSpecctraSES failed"
     unlock = set(filter(None, open(dsn + ".unlock").read().split("\n")))
     # Freerouting 2.4.1 necks tracks down to 0.75x at small pads and its job

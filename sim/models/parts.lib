@@ -1,0 +1,77 @@
+* NickLink v1.3 part models for ngspice (included by every testbench).
+* Vendor model used elsewhere: TLV75533P_TRANS.lib = TI SBVM831 "TLV75533P Unencrypted
+* PSpice Transient Model", unmodified. It runs under ngspice with ngbehavior=psa (.spiceinit);
+* each testbench adds ".ic v(xu.u1_n08530)=0" because ngspice ignores the soft-start cap's
+* IC=0 without UIC (otherwise the soft-start starts fully charged).
+*
+* Everything below is fitted by hand to datasheet numbers; assumptions are stated per model.
+
+* MLCCs (with DC-bias derating) are in caps.lib.
+
+*---------------------------------------------------------------------------------------------
+* D2 Hottech 1N5819WS (SOD-323). Fitted to the datasheet typical curve (25 C):
+* VF ~0.30 V @100 mA, ~0.37 V @500 mA, 0.42 V @1 A (datasheet max 0.60 V @1 A).
+.model D1N5819WS D(IS=7.5u N=1.2 RS=0.05 CJO=80p M=0.4 VJ=0.35 BV=40 IBV=0.5m EG=0.69 XTI=2)
+
+*---------------------------------------------------------------------------------------------
+* U3 USBLC6-2P6, VBUS(5)-GND(2) internal Zener only (the I/O steering diodes do not matter
+* for power). ST datasheet: VBR >= 6 V @ 1 mA (min only, no typ/max), VCL 12 V @1 A / 17 V
+* @5 A 8/20 us (I/O-GND) -> dynamic R ~1.25 ohm. ST's SPICE model could not be downloaded
+* (st.com blocks scripted access), so this is behavioural; BV is a testbench parameter
+* swept 6 V (datasheet min) and 9 V (assumed weak sample).
+.subckt USBLC6_VBUS vbus gnd params: BV=6
+D1 gnd vbus DZ
+.model DZ D(IS=1e-12 N=1 BV={BV} IBV=1m RS=1.25 CJO=30p)
+.ends
+
+* Optional TVS (proposal, not fitted): Littelfuse SMF5.0A, VRWM 5 V, VBR 6.40-7.07 V @10 mA,
+* VC 9.2 V @21.7 A -> BV 6.7 V, RS 0.115 ohm.
+.model DSMF5V0A D(IS=1e-12 N=1 BV=6.7 IBV=10m RS=0.115 CJO=400p)
+
+*---------------------------------------------------------------------------------------------
+* FB1 Murata BLM15AG121SN1D (0402): 120 ohm +-25 % @100 MHz, DCR 0.19 ohm max.
+* Approximation (Murata SimSurfing netlist not fetched): DCR 0.10 ohm + (0.45 uH || 150 ohm
+* || 1 pF). Gives ~30 ohm @10 MHz, ~120 ohm @100 MHz.
+.subckt BLM15AG121 a b
+R0 a m 0.10
+L1 m b 0.45u
+R1 m b 150
+C1 m b 1p
+.ends
+
+*---------------------------------------------------------------------------------------------
+* LEDs: diode fitted through two (V,I) points with a per-corner RS:
+*   nVt = ((V2-I2*RS)-(V1-I1*RS))/ln(I2/I1), IS = I1*exp(-(V1-I1*RS)/nVt), N = nVt/Vt.
+* Points: datasheet VF at 20 mA (min/typ/max bins) and the typ IV curve near 1 mA; the low-
+* current end of the min/max bins is an assumption (bin spread shrinks at low current).
+.param VT=0.025865
+* Everlight 16-213/R6C (red AlGaInP): VF 1.75..2.35 V @20 mA; typ curve ~1.80 V @1 mA.
+.param R_V1MIN=1.62 R_V1TYP=1.80 R_V1MAX=2.05 R_V2MIN=1.75 R_V2TYP=2.00 R_V2MAX=2.35
+.param R_RSMIN=2 R_RSTYP=5 R_RSMAX=8
+* Everlight 16-213/GHC (green InGaN): VF 2.7/3.3/3.7 V @20 mA; typ curve ~2.70 V @1 mA.
+.param G_V1MIN=2.50 G_V1TYP=2.70 G_V1MAX=2.90 G_V2MIN=2.70 G_V2TYP=3.30 G_V2MAX=3.70
+.param G_RSMIN=3 G_RSTYP=15 G_RSMAX=20
+.param I1=1m I2=20m
+.func nvt(v1,v2,rs) {((v2-I2*rs)-(v1-I1*rs))/ln(I2/I1)}
+.func isat(v1,v2,rs) {I1*exp(-(v1-I1*rs)/nvt(v1,v2,rs))}
+.model LED_R_MIN D(IS={isat(R_V1MIN,R_V2MIN,R_RSMIN)} N={nvt(R_V1MIN,R_V2MIN,R_RSMIN)/VT} RS={R_RSMIN})
+.model LED_R_TYP D(IS={isat(R_V1TYP,R_V2TYP,R_RSTYP)} N={nvt(R_V1TYP,R_V2TYP,R_RSTYP)/VT} RS={R_RSTYP})
+.model LED_R_MAX D(IS={isat(R_V1MAX,R_V2MAX,R_RSMAX)} N={nvt(R_V1MAX,R_V2MAX,R_RSMAX)/VT} RS={R_RSMAX})
+.model LED_G_MIN D(IS={isat(G_V1MIN,G_V2MIN,G_RSMIN)} N={nvt(G_V1MIN,G_V2MIN,G_RSMIN)/VT} RS={G_RSMIN})
+.model LED_G_TYP D(IS={isat(G_V1TYP,G_V2TYP,G_RSTYP)} N={nvt(G_V1TYP,G_V2TYP,G_RSTYP)/VT} RS={G_RSTYP})
+.model LED_G_MAX D(IS={isat(G_V1MAX,G_V2MAX,G_RSMAX)} N={nvt(G_V1MAX,G_V2MAX,G_RSMAX)/VT} RS={G_RSMAX})
+
+*---------------------------------------------------------------------------------------------
+* Generic switch for buttons / open-drain outputs (control > 0.5 V = closed).
+.model SWX SW(VT=0.5 VH=0.01 RON=0.2 ROFF=1e9)
+
+*---------------------------------------------------------------------------------------------
+* Q1 Diodes DMP2165UW (SOT-323 P-FET) as wired on the board: G = GND, S = 5V_F, D = J1.1.
+* Body diode D -> S (VSD 0.7 V typ / 1.1 V max at 1 A, DS40439 p.2) plus a bidirectional channel
+* that is on while V(S) > ~1.2 V (VGS = -V(S); VGS(th) -0.4..-1.0 V), RDS(on) 90 mOhm max at -4.5 V.
+.subckt DMP2165UW_GGND s d
+Dbody d s DQB
+Sch s d s 0 SQ
+.model DQB D(IS=1n N=1.3 RS=0.05 CJO=70p)
+.model SQ SW(VT=1.2 VH=0.1 RON=0.09 ROFF=1e7)
+.ends

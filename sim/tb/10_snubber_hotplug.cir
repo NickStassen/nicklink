@@ -1,0 +1,78 @@
+* 10a Hot-plug with C12 as an RC snubber (topology A base, no series R in the main path).
+* VBUS -> U3/C13 100n -> D2 -> VSYS (= LDO IN) ; snubber VSYS -> Rs -> C12 4.7 uF 0402 X5R 10 V
+*   (V0 = 3.1: 28 % at 5 V, assumed) -> GND ; optional Cd directly on VSYS (0402: 100 nF X7R
+*   V0 6.6, or 1 uF X5R 25 V V0 4.04) ; F1 0.3 ohm + Q1 90 mohm to J1.1 (open). C5 10 uF unless
+*   noted. Same source/cable/clamp corners as 01 (5.5 V step; 0.5/1 uH x 0.1/0.3 ohm; BV 6/9 V).
+* VARIANT n = 3*i + j : Rs = {0.5, 1.0, 2.2}[i], Cd = {none, 100n, 1u}[j]; variant 9 = Rs 1.0 +
+*   Cd 100n with C5 = 4.7 uF (inrush margin). Parsed by analyze.py from the vectors below.
+* Pass: worst VSYS peak <= 5.8 V and inrush (full-bias estimate) <= 50 uC.
+*   Rs power reported from (V(vsys)-V(nc))^2/Rs: peak, energy per plug-in, mean over 50 us.
+.include models/parts.lib
+.include models/caps.lib
+.include models/TLV75533P_TRANS.lib
+.include models/board.lib
+.param VSRC=5.5 LC=1u RC=0.1 BV=6 RS=1 CD=1p CDV0=6.6 C5V=10u
+Vs src 0 PWL(0 0 10n {VSRC})
+Vi src si 0
+Lc si c1 {LC}
+Rc c1 vbus {RC}
+XC13 vbus 0 C100N0402_NL
+XU3 vbus 0 USBLC6_VBUS BV={BV}
+D2 vbus vsys D1N5819WS
+Rs vsys nc {RS}
+XC12 nc 0 MLCC_NL C0=4.7u V0=3.1 ESR=10m ESL=0.3n
+XCD vsys 0 MLCC_NL C0={CD} V0={CDV0} ESR=10m ESL=0.3n
+XR vsys p3 p3a NL_RAIL C5={C5V}
+RL p3 0 330
+RFH vsys nq 0.3
+RQ1 nq hdr 0.09
+Chdr hdr 0 10p
+.ic v(xr.xu2.u1_n08530)=0
+* 0.58 ms: see 01/09 (3V3 is up by ~0.45 ms; longer runs can stall the bias-dependent caps).
+.tran 5n 0.58m 0 50n
+.control
+compose vrs  values 0.5 0.5  0.5 1.0 1.0  1.0 2.2 2.2  2.2 1.0
+compose vcd  values 1p  100n 1u  1p  100n 1u  1p  100n 1u  100n
+compose vcd0 values 6.6 6.6  4.04 6.6 6.6 4.04 6.6 6.6 4.04 6.6
+compose vc5  values 10u 10u  10u 10u 10u  10u 10u 10u  10u 4.7u
+compose vlc  values 0.5u 0.5u 1u 1u
+compose vrc  values 0.1  0.3  0.1 0.3
+compose vbv  values 6 9
+let iv = 0
+while iv < length(vrs)
+  let ic = 0
+  while ic < 4
+    let ib = 0
+    while ib < 2
+      let x = vrs[iv]
+      alterparam RS = $&x
+      let x = vcd[iv]
+      alterparam CD = $&x
+      let x = vcd0[iv]
+      alterparam CDV0 = $&x
+      let x = vc5[iv]
+      alterparam C5V = $&x
+      let x = vlc[ic]
+      alterparam LC = $&x
+      let x = vrc[ic]
+      alterparam RC = $&x
+      let x = vbv[ib]
+      alterparam BV = $&x
+      reset
+      run
+      let n = 100*iv + 10*ic + ib
+      set ns = "$&n"
+      let a = vlc[ic]
+      let b = vrc[ic]
+      let c = vbv[ib]
+      echo "CASE sn_{$ns} variant=$&iv LC=$&a RC=$&b BV=$&c"
+      wrdata results/sn_{$ns}.dat v(vbus) v(vsys) v(nc) v(p3) i(vi)
+      destroy all
+      let ib = ib + 1
+    end
+    let ic = ic + 1
+  end
+  let iv = iv + 1
+end
+.endc
+.end

@@ -1,0 +1,38 @@
+* 05 LED currents over the VF spread (Everlight 16-213 bins, fits in parts.lib).
+* D1 red: 3V3 -> D1 -> R3 1k5 -> GND.  D3 green: 3V3 -> D3 -> R6 -> PC13 (output low,
+*   modelled as 100 ohm to GND: datasheet VOL 0.4 V at 3 mA is <= 133 ohm).
+* R6 is swept over E12/E24 values (spec.py: R6 = 330 ohm, was 1k5 in the v1.3 original);
+*   analyze.py reports the as-built value and the PC13 sink limit (<= 3 mA) at the lowest-VF bin.
+* Pass: red 0.5..3 mA all bins; green typ >= 1 mA and <= 3 mA at the min-VF bin.
+.include models/parts.lib
+.param R6=1.5k
+V33 p3 0 3.3
+D1a p3 ka LED_R_MIN
+R3a ka 0 1.5k
+D1b p3 kb LED_R_TYP
+R3b kb 0 1.5k
+D1c p3 kc LED_R_MAX
+R3c kc 0 1.5k
+D3a p3 ga LED_G_MIN
+R6a ga pa {R6}
+Rpa pa 0 100
+D3b p3 gb LED_G_TYP
+R6b gb pb {R6}
+Rpb pb 0 100
+D3c p3 gc LED_G_MAX
+R6c gc pc {R6}
+Rpc pc 0 100
+.control
+compose vr values 100 120 150 180 200 220 240 270 300 330 390 470 560 680 820 1000 1200 1500
+let k = 0
+while k < length(vr)
+  let x = vr[k]
+  alterparam R6 = $&x
+  reset
+  op
+  echo "LED R6=$&x Ir_min=$&@d1a[id] Ir_typ=$&@d1b[id] Ir_max=$&@d1c[id] Ig_min=$&@d3a[id] Ig_typ=$&@d3b[id] Ig_max=$&@d3c[id] Vg_typ=$&v(p3)"
+  destroy all
+  let k = k + 1
+end
+.endc
+.end

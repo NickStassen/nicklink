@@ -17,7 +17,7 @@ work=${out%.kicad_pcb}
 # Net classes/rules live in the .kicad_pro, parity needs the .kicad_sch, DRC's
 # footprint-lib checks need the lib tables: give the output its own copies so it
 # can be opened / DRC'd on its own.
-for ext in kicad_pro kicad_sch; do
+for ext in kicad_pro kicad_dru kicad_sch; do
   [[ -f ${in%.kicad_pcb}.$ext && ! -f $work.$ext ]] && cp "${in%.kicad_pcb}.$ext" "$work.$ext"
 done
 for f in "$(dirname "$in")"/{fp-lib-table,sym-lib-table,*.pretty}; do
