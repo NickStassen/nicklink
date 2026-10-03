@@ -34,6 +34,7 @@ tools/fab.sh         # gerbers, drills, BOM/CPL, PDFs, renders, checks/
 | `fixroute.sh` | Finishes a connection Freerouting left open: a small two-layer grid router (`fixroute.py`) joins the copper cluster holding one pad to the cluster holding another, e.g. `tools/fixroute.sh in.kicad_pcb out.kicad_pcb GND R5.1 U1.23 0.25`. Run `drc.sh` afterwards. |
 | `gndnet.py` | GND connectivity per pour island (KiCad treats a whole zone as one item), so floating island pairs show up. `stitch.py` uses the same idea. |
 | `swapfp.py` | Swaps a placed footprint for a same-pad variant (e.g. NoSilk) on a routed board, keeping nets and the symbol link. |
+| `bringup_img.sh` | Renders the board and draws the bring-up pictures (`docs/images/bringup-*.png`: ST-Link wiring, check points) from the real pad positions (`bringup_img.py`). |
 | `nosilk.py` | Copies a library footprint into `nicklink.pretty` without its silkscreen. |
 | `kdock` | Runs a command in the KiCad container with the repo and 3D models mounted. |
 

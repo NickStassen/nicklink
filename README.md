@@ -12,6 +12,8 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 
 </details>
 
+**New board?** Follow the [bring-up guide](docs/BRINGUP.md): wiring for an STLINK-V3MINIE, a prebuilt test firmware and a checklist for every part.
+
 ## What changed
 
 **v1.3** adds the IMU on I2C1. It fits into existing gaps beside the MCU, on the top side with single-sided assembly. The board is 0.8 mm wider than v1.2 only because the pin labels grew to JLC's 1.0 mm minimum text height (see [JLCPCB design rules](#jlcpcb-design-rules)). PB6/PB7 get 4.7 kΩ pull-ups again, because the bus now has an on-board device. The IMU's INT1 drives PA0. The 3V3 budget drops by about 1 mA for the IMU. Everything else is as in v1.2.
@@ -177,18 +179,13 @@ The board is checked against JLCPCB's published 2-layer and assembly limits ([PC
 
 ## Validation and fabrication
 
-KiCad 10.0.6: **0 DRC violations, 0 unconnected items, 0 schematic-parity issues, 0 ERC errors or warnings** (reports in [`checks/`](checks/)). Every pin in the schematic netlist is checked against `tools/spec.py`. These checks cover connectivity and geometry. This revision has not been built yet; it needs a prototype and bench testing.
+KiCad 10.0.6: **0 DRC violations, 0 unconnected items, 0 schematic-parity issues, 0 ERC errors or warnings** (reports in [`checks/`](checks/)). Every pin in the schematic netlist is checked against `tools/spec.py`. These checks cover connectivity and geometry. This revision has not been built yet; it needs a prototype and bench testing (see [`docs/BRINGUP.md`](docs/BRINGUP.md)).
 
 The BOM carries verified LCSC part numbers for every part, through-hole included. To order, upload `fabrication/v1.3/nicklink_gerbers.zip`, then for assembly `nicklink_BOM_JLC.csv` and `nicklink_CPL.csv`. Several parts are JLC "Extended" parts, which add a per-part loading fee; see [`tools/parts_research.md`](tools/parts_research.md).
 
-Bring-up:
+**Bring-up and board test:** [`docs/BRINGUP.md`](docs/BRINGUP.md) walks through the first power-up of a new board, wiring an STLINK-V3MINIE to J3, flashing the prebuilt test firmware ([`firmware/prebuilt/`](firmware/prebuilt/)) and a 14-step checklist. The checklist covers power, crystal, LEDs, buttons, IMU, every header GPIO, ADC and Standby wake.
 
-1. Check for shorts, then apply current-limited 5 V and verify 5V (≈4.7 V on USB at light load), 3V3 and VDDA.
-2. Connect SWD and confirm the RESET button resets the chip.
-3. Configure firmware for the **8 MHz HSE**: PLL ×9 = 72 MHz, USB prescaler /1.5. Verify that the oscillator starts. If the HSE runs fast, try 18 pF load capacitors.
-4. Check USB enumeration in both cable orientations, then BOOT + RESET into the USART1 bootloader.
-5. Scan I2C1 (expect 0x6A) and read IMU WHO_AM_I = 0x70. Tap the board and check that A0 pulses once tap detection is enabled.
-6. Test the peripherals you need.
+[![STLINK-V3MINIE to NickLink wiring](docs/images/bringup-stlink-wiring.png)](docs/BRINGUP.md)
 
 **Interface limits:**
 

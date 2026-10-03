@@ -15,6 +15,8 @@ The outputs are `build/nicklink-test.elf`, `.bin` and `.map`. The first docker b
 
 ## Flash
 
+`prebuilt/nicklink-test.hex` / `.bin` is this firmware prebuilt (refresh it with `make` and copy from `build/` after changing the source). [`docs/BRINGUP.md`](../docs/BRINGUP.md) has the STLINK-V3MINIE wiring and a step-by-step board test using it.
+
 **SWD (ST-Link):** connect J3.1 3V3 (target sense), J3.2 GND, J3.7 SWDIO, J3.8 SWCLK and J3.10 NRST.
 
 ```sh
