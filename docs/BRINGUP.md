@@ -31,7 +31,7 @@ Plug USB-C into a computer.
 - **J1.1 (5V)** reads about 4.6–4.8 V.
 - Unplug, flip the USB-C plug over and plug in again. The LED should light in both orientations.
 
-A brand-new STM32 has no program, so nothing else happens yet. The computer won't see a USB device until firmware with USB support is loaded.
+A brand-new STM32 has no program, so it will not enumerate. The D+ pull-up is hard-wired from VBUS (R2 2.2 kΩ and R11 4.7 kΩ), so the computer still sees a USB device as soon as the cable is plugged in. USB data needs firmware that speaks USB. The test firmware in this guide holds D+ low and keeps USB off.
 
 ## 3. Wire the ST-Link
 

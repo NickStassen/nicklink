@@ -1,20 +1,27 @@
-> **Update (final design):** the LEDs moved to 0402 to fit the layout: Everlight 16-213 red **C264407** and green **C74338** (both JLC Extended; JLC has no Basic 0402 LEDs). With 1.5 kΩ the green InGaN LED runs at about 0.4 mA and is dimmer than the red; change R6 to 1 kΩ if you want it brighter. The 0603 LED notes below are superseded.
+> **As built (v1.3). Order from `fabrication/v1.3/nicklink_BOM_JLC.csv`, not from the v1.2 study below.**
+>
+> - **U2:** TI TLV76733DRVR, LCSC **C2848334**. Same WSON-6 land as the TLV755 in section 1, but pin 2 is SNS (tied to OUT) and pin 5 is GND, not NC. VIN/EN absolute maximum is **18 V**, not 6.0 V. Do not order TLV75533PDRVR C2861750.
+> - **C12:** 4.7 µF 16 V 0402, Samsung CL05A475MO5NUNC, LCSC **C318563**. Not 10 µF 0603 C19702.
+> - **R6:** 330 Ω (C25104), about 1.3 mA. Not 1.5 kΩ and not 1 kΩ. The green LED is brighter than the 0.4 mA note this file used to give.
+> - **U4:** ST LSM6DSV, C41785564, on I2C1 (PB6/PB7), address 0x6A. Not the LSM6DSV16X.
+> - **J1, J3:** HanElectricity 2541WV-2x10P, C5383109. **J2:** GCT USB4085, C7095263. All three are in the CPL. JLC assembles them. Do not plan to hand-solder them.
+> - **LEDs:** Everlight 16-213 red C264407 and green C74338, both 0402. The 0603 KENTO notes below are the v1.2 study.
 
-# NickLink v1.2 parts research
+# NickLink parts research
 
-Researched 2026-10-01.
+Researched 2026-10-01 for v1.2. The body still records that study. Where it names TLV75533PDRVR, a 10 µF 0603 input cap, or a 1.5 kΩ user-LED resistor as the part to fit, that choice was superseded by the list above.
 
 **How LCSC numbers were checked:** each C-number was looked up in JLCPCB's own parts-search backend (the `selectSmtComponentList` API behind jlcpcb.com/parts). That lookup returns the MPN, manufacturer, package, library type (`base` = Basic, `expand` = Extended), the "preferred" flag and stock. Stock figures are from 2026-10-01. Spot checks on lcsc.com product pages (C51118, C82942, C7519, C191023, C231329) agreed. Datasheets came from LCSC's datasheet links or from the manufacturers.
 
 Per-part pages: `https://jlcpcb.com/partdetail/<C-number>` and `https://www.lcsc.com/product-detail/<C-number>.html`.
 
-**Design change from the lead:** the LDO is now **TI TLV75533PDRVR (WSON-6 2x2)** and the ESD part is now **ST USBLC6-2P6 (SOT-666)**. AP2112K and USBLC6-2SC6 are kept below as fallbacks only.
+**v1.2 change from the lead (superseded for the LDO):** v1.2 used **TI TLV75533PDRVR (WSON-6 2x2)**. The fitted v1.3 regulator is **TI TLV76733DRVR, C2848334** (see the banner). The ESD part **ST USBLC6-2P6 (SOT-666)** is still fitted. AP2112K and USBLC6-2SC6 were fallbacks only.
 
 ## Summary table
 
 | # | Function | Chosen MPN | LCSC | JLC lib | Verified | Key datasheet facts |
 |---|---|---|---|---|---|---|
-| 1 | 3V3 LDO | TI **TLV75533PDRVR** (WSON-6-EP 2x2) | **C2861750** | Extended | Yes (TI, WSON-6-EP(2x2), 16k stock) | Pins: 1 OUT, 2 NC, 3 GND, 4 EN, 5 NC, 6 IN, pad = GND. CIN ≥1 µF, COUT ≥1 µF (≥0.47 µF effective), X5R/X7R ceramic, COUT ≤200 µF. Dropout at 500 mA: 150 typ / 215 max mV (85 °C), 238 max (125 °C). RθJA (DRV, JEDEC) 100.2 °C/W. **VIN recommended max 5.5 V, absolute max 6.0 V.** |
+| 1 | 3V3 LDO, as built | TI **TLV76733DRVR** (WSON-6-EP 2x2) | **C2848334** | Extended | Pinout checked on the v1.3 schematic | Pins: 1 OUT, 2 SNS (tied to OUT), 3 GND, 4 EN, 5 GND, 6 IN, pad = GND. VIN/EN absolute max **18 V**. Replaces TLV75533PDRVR C2861750 (6.0 V abs max), which section 1 studied for v1.2. Do not order C2861750. |
 | 1b | LDO fallback | Diodes AP2112K-3.3TRG1 (SOT-25) | C51118 | Extended | Yes | Pins 1 VIN, 2 GND, 3 EN, 4 NC, 5 VOUT. 1 µF ceramic X5R/X7R in and out. Dropout at 600 mA: 250 typ / 400 max mV. θJA 184 °C/W. VIN up to 6.0 V recommended, 6.5 V absolute max. |
 | 2 | USB ESD | ST **USBLC6-2P6** (SOT-666) | **C15999** (genuine ST, 2.9k stock). C2827693 is the TECH PUBLIC second source (46k stock). | Extended | Yes | Pins: 1 I/O1, 2 GND, 3 I/O2, 4 I/O2, 5 VBUS, 6 I/O1. Same pinout as SC6. 3.5 pF max line capacitance, VRM 5.25 V. |
 | 2b | ESD fallback | ST USBLC6-2SC6 (SOT-23-6L) | C7519 | Extended | Yes | Same die and pinout. |
@@ -23,12 +30,12 @@ Per-part pages: `https://jlcpcb.com/partdetail/<C-number>` and `https://www.lcsc
 | 4b | Cheaper switch | hanxia HX-B3U-1000P-1.6N | C49234121 | Extended | MPN/stock yes; **footprint not verified (no datasheet on JLC/LCSC)** | $0.08 vs $0.19. Also extended, so it saves no setup fee. Not recommended. |
 | 5 | 8 MHz crystal | YXC **X32258MOB4SI** (YSX321SL, SMD3225-4P) | **C2682775** | Extended | Yes (83k stock) | CL 12 pF, ESR 150 Ω max (datasheet; the JLC listing says 180 Ω), C0 ≤3 pF, C1 ≤5 fF, ±10/±20 ppm, drive level 100 µW. Crystal sits on pads 1–3, pads 2 and 4 are GND. |
 | 5c | Crystal load caps | FH 0402CG150J500NT, **15 pF** C0G 50 V 0402 | **C1548** | **Basic** | Yes | Alternative: 18 pF C1549 (Basic). |
-| 6r | Red LED | KENTO KT-0603R | **C2286** | **Basic** | Yes | VF 1.8–2.4 V at 20 mA, ≈1.85 V at 1 mA (curve). 145–300 mcd at 20 mA. |
-| 6g | Green LED | KENTO KT-0603G | **C12624** | **Extended** (no 0603 green exists in JLC Basic) | Yes | VF 2.6–3.1 V at 5 mA, ≈2.4 V at 1 mA (curve). 210–430 mcd at 5 mA. The Basic green is 0805 only: KT-0805G **C2297**. |
+| 6r | Red LED, as built | Everlight 16-213/R6C-AQ2R2B/3T (0402) | **C264407** | Extended | On the v1.3 BOM | Power LED, with R3 1.5 kΩ. The KENTO 0603 C2286 notes in section 6 are the v1.2 study. |
+| 6g | Green LED, as built | Everlight 16-213/GHC-YR1S1/3T (0402) | **C74338** | Extended | On the v1.3 BOM | User LED on PC13. R6 is **330 Ω (C25104)**, about 1.3 mA, not 1.5 kΩ or 1 kΩ. The KENTO 0603 C12624 notes in section 6 are the v1.2 study. |
 | 7 | Ferrite bead | Murata **BLM15AG121SN1D** (0402) | **C85812** | Extended (no 0402 bead exists in JLC Basic) | Yes | 120 Ω ±25% at 100 MHz, 550 mA rated, 0.19 Ω max DCR. The Basic option is 0603 BLM18PG121SN1D **C14709** (120 Ω, 2 A, 0.05 Ω). |
 | 8 | 100 nF 0402 X7R 16 V | Samsung CL05B104KO5NNNC | **C1525** | **Basic** | Yes | |
 | 8 | 1 µF 0402 | Samsung CL05A105KA5NQNC (X5R **25 V**) | **C52923** | **Basic** | Yes | The 10 V version (CL05A105KP5NNNC, C14445) is Extended. 25 V is the better choice anyway. |
-| 8 | 10 µF 0603 X5R 10 V | Samsung CL10A106KP8NNNC | **C19702** | **Basic** | Yes | |
+| 8 | 10 µF 0603 X5R 10 V | Samsung CL10A106KP8NNNC | **C19702** | **Basic** | Yes | **Not fitted.** v1.2 study only. C12 is 4.7 µF 16 V 0402, Samsung CL05A475MO5NUNC, **C318563**. |
 | 8 | 10 kΩ 0402 1% | UNI-ROYAL 0402WGF1002TCE | **C25744** | **Basic** | Yes | |
 | 8 | 5.1 kΩ 0402 1% | UNI-ROYAL 0402WGF5101TCE | **C25905** | **Basic** | Yes | |
 | 8 | 1.5 kΩ 0402 1% | UNI-ROYAL 0402WGF1501TCE | **C25867** | **Basic** | Yes | |
@@ -39,7 +46,7 @@ Per-part pages: `https://jlcpcb.com/partdetail/<C-number>` and `https://www.lcsc
 
 ## Key numbers
 
-- **3V3 load budget (TLV75533PDRVR, 40 °C ambient, Tj ≤ 100 °C, so ΔT = 60 K):**
+- **3V3 load budget (v1.2 study of the TLV75533PDRVR, not the fitted TLV76733; 40 °C ambient, Tj ≤ 100 °C, so ΔT = 60 K):**
   - With TI's JEDEC 2s2p (4-layer) RθJA of 100.2 °C/W, the LDO can dissipate 0.60 W. That allows **428 mA at VIN = 4.7 V**, or 352 mA at VIN = 5.0 V (a hot VBUS).
   - A small 2-layer board will be worse. At an estimated ~150 °C/W (**my estimate, not verified**) the limits are 286 mA at 4.7 V and 235 mA at 5.0 V.
   - **Recommended continuous 3V3 budget: 250 mA total**, including the MCU (~50 mA at 72 MHz with peripherals on). Up to ~400 mA is reasonable if the EP has vias into solid GND copper on both layers.
@@ -49,7 +56,7 @@ Per-part pages: `https://jlcpcb.com/partdetail/<C-number>` and `https://www.lcsc
   - Gain margin: gm_crit = 4·ESR·(2πf)²·(C0+CL)² = 4·150·(2π·8 MHz)²·(15 pF)² = **0.34 mA/V**. The F103 HSE gm is **25 mA/V min**, so the **gain margin is ≈73**, far above AN2867's minimum of 5. Using the JLC-listed 180 Ω ESR still gives 61.
   - A 20 pF crystal (X32258MSB4SI, C2682774) would need 30–34 pF caps and has a margin of ≈31. The 12 pF part is better.
   - Note: DS5319 suggests "10 pF … rough estimate of combined pin and board capacitance". Taken literally, that would mean ~4 pF caps. I followed your 3–5 pF stray (per-pin Cin(HSE) is 5 pF, so the lumped value across the crystal is ~3–4 pF). If a measured HSE runs fast, go to 18 pF (C1549).
-- **LEDs at 1.5 kΩ from 3.3 V:**
+- **LEDs at 1.5 kΩ from 3.3 V (v1.2 resistor value; fitted R6 is 330 Ω):**
   - Red: (3.3 − 1.85)/1.5k = **0.97 mA**, roughly 7–15 mcd.
   - Green: (3.3 − 2.4)/1.5k = **0.60 mA** (0.47 mA in the highest VF bin). Scaling the 210–430 mcd at 5 mA rating gives roughly 25–50 mcd. That is clearly visible, and in fact **brighter than the red**. No resistor change is needed for visibility.
   - If you want the two to look equally bright, use 5.1 kΩ on the green (≈0.2 mA, and it reuses an existing BOM line).
@@ -57,7 +64,7 @@ Per-part pages: `https://jlcpcb.com/partdetail/<C-number>` and `https://www.lcsc
   - **FT:** PA8, PA9, PA10, PA11, PA12, PA13, PA14, PA15, PB2, PB3, PB4, PB6, PB7, PB8, PB9, PB10, PB11, PB12, PB13, PB14, PB15.
   - **Not FT:** PA0–PA7, PB0, PB1, **PB5**, PC13, PC14, PC15.
 
-## 1. LDO: TLV75533PDRVR (primary), with AP2112K as fallback
+## 1. LDO: TLV75533PDRVR (v1.2 study, not fitted)
 
 **TLV75533PDRVR, C2861750** (TI, WSON-6-EP(2x2), Extended, 16,284 in stock, $0.28).
 Source: https://www.ti.com/lit/ds/symlink/tlv755p.pdf (SBVS320D, Sept 2024)
@@ -66,7 +73,7 @@ Source: https://www.ti.com/lit/ds/symlink/tlv755p.pdf (SBVS320D, Sept 2024)
   - The KiCad `Package_SON:WSON-6-1EP_2x2mm_P0.65mm_EP1x1.6mm` footprint numbers pads 1–3 down the left side, 4–6 up the right side, and pad 7 is the 1.0 x 1.6 mm EP. Its description references the same TI DRV package.
   - Watch out: the KiCad footprint also has two unnumbered paste-only pads on the EP. That is normal.
 - **Capacitors:** CIN 1 µF min and COUT 1 µF min (Recommended Operating Conditions). The footnote requires >0.47 µF effective at the pin, assuming 50% derating. COUT max is 200 µF. Use X5R/X7R ceramic (7.1.1).
-  - A 1 µF 0402 25 V X5R (C52923) at 3.3 V keeps roughly 0.5–0.7 µF after DC bias. That is borderline, so **use 10 µF 0603 (C19702) or 2x 1 µF on OUT, and ≥1 µF on IN.**
+  - A 1 µF 0402 25 V X5R (C52923) at 3.3 V keeps roughly 0.5–0.7 µF after DC bias. That is borderline for this TLV755 study, which suggested **10 µF 0603 (C19702) or 2x 1 µF on OUT, and ≥1 µF on IN.** That 10 µF part is not on the v1.3 board. C12 is 4.7 µF 16 V 0402, C318563, and C8 (LDO output) is 1 µF, C52923.
 - **Dropout (3.3 V ≤ VOUT < 5 V, 500 mA):** 150 typ / 215 max mV from −40 to 85 °C, 238 mV max from −40 to 125 °C. At 4.7 V in there is about 1.2 V of headroom.
 - **Thermal (5.4):** DRV RθJA is **100.2 °C/W** (JEDEC high-K), RθJB 64.3, RθJC(bot) 34.7. Thermal shutdown trips at 165 °C. Recommended Tj is ≤125 °C.
 - **Input voltage:** recommended **1.45–5.5 V**, absolute max **6.0 V**. EN has the same limits.
@@ -97,7 +104,7 @@ Source: https://www.diodes.com/assets/Datasheets/AP2112.pdf (DS39724 Rev 2-2)
 | RT9013-33GB | C47773 | 500 mA | θJA 250 °C/W | 400 mV dropout at 500 mA. |
 | XC6220B331MR-G (SOT-25) | C86534 | 1 A | 166.7 °C/W on Torex 40x40 mm 2-layer board | Best SOT-25 thermals, but $$ |
 
-**Verdict:** TLV75533PDRVR is the best of the set thermally (100 °C/W) and is in stock. Keep it.
+**Verdict (v1.2, superseded):** TLV75533PDRVR was the best of this set thermally (100 °C/W) and was in stock. Do not fit it on v1.3. The board uses TLV76733DRVR, C2848334.
 
 ## 2. ESD: USBLC6-2P6 (primary), with USBLC6-2SC6 as fallback
 
@@ -162,14 +169,16 @@ Source: https://www.lcsc.com/datasheet/lcsc_datasheet_2411121006_YXC-Crystal-Osc
 
 ## 6. LEDs
 
+The 0603 KENTO parts in this section are the v1.2 study. The fitted LEDs are the 0402 Everlights in the banner (C264407, C74338), and the user-LED resistor is 330 Ω, not 1.5 kΩ.
+
 - **Red:** KT-0603R **C2286** (Basic).
   - Datasheet: https://www.lcsc.com/datasheet/lcsc_datasheet_1810231112_Hubei-KENTO-Elec-KT-0603R_C2286.pdf
   - The I-V curve reaches ~1 mA at ≈1.85 V.
 - **Green:** KT-0603G **C12624** (**Extended**). JLC Basic has 0603 red and white only, and green only in 0805: KT-0805G **C2297**, Basic.
   - Datasheet: https://www.lcsc.com/datasheet/lcsc_datasheet_1806151818_Hubei-KENTO-Elec-KT-0603G_C12624.pdf
   - It is InGaN emerald (λd 513–528 nm). The I-V curve starts at ~1 mA at ≈2.4 V, and VF bins at 5 mA run from 2.6 to 3.1 V.
-- **At 1.5 kΩ:** red ≈0.97 mA, green ≈0.47–0.60 mA. The green will be visibly bright (tens of mcd, brighter than the red). Keep 1.5 kΩ, or use 5.1 kΩ on the green to match the red's brightness.
-- **To avoid one Extended setup fee:** switch the green LED footprint to 0805 and use C2297.
+- **At 1.5 kΩ (v1.2 study, not the fitted R6):** red ≈0.97 mA, green ≈0.47–0.60 mA. The green would be visibly bright (tens of mcd, brighter than the red). v1.3 fits R6 = 330 Ω instead. Do not change it to 1 kΩ or leave it at 1.5 kΩ.
+- **v1.2 option, not done:** to avoid one Extended setup fee, the study suggested switching the green LED to 0805 (C2297). v1.3 keeps the 0402 Everlight.
 - **MCU pin choice:** do not source LED current from PC13–PC15 (see section 9). Sinking ≤3 mA is allowed.
 
 ## 7. Ferrite bead
@@ -186,7 +195,7 @@ Source: https://www.lcsc.com/datasheet/lcsc_datasheet_2411121006_YXC-Crystal-Osc
 |---|---|---|
 | 100 nF 0402 X7R 16 V | CL05B104KO5NNNC | C1525 |
 | 1 µF 0402 X5R 25 V | CL05A105KA5NQNC | C52923 |
-| 10 µF 0603 X5R 10 V | CL10A106KP8NNNC | C19702 |
+| 10 µF 0603 X5R 10 V (not fitted) | CL10A106KP8NNNC | C19702 |
 | 10 kΩ 0402 1% | 0402WGF1002TCE | C25744 |
 | 5.1 kΩ 0402 1% | 0402WGF5101TCE | C25905 |
 | 1.5 kΩ 0402 1% | 0402WGF1501TCE | C25867 |
@@ -232,16 +241,16 @@ Sources: DS5319 Rev 18 (https://www.st.com/resource/en/datasheet/stm32f103c8.pdf
 
 ## Not verified / caveats
 
-- Real RθJA of the TLV75533PDRVR on this specific 2-layer board. The ~150 °C/W figure is my estimate; TI only gives the JEDEC 4-layer value of 100.2.
+- Real RθJA of the v1.2 TLV75533PDRVR study on this 2-layer board. The ~150 °C/W figure is an estimate; TI only gives the JEDEC 4-layer value of 100.2. It is not a measurement of the fitted TLV76733.
 - Footprint compatibility of the HX-B3U-1000P-1.6N clone (no datasheet available).
 - Crystal drive level with the F103 HSE was not computed. The YXC part is rated 100 µW and 8 MHz at CL = 12 pF is a normal operating point, but this is unverified.
 - The 1N5819WS VF and leakage values at 100/500 mA are read from typical curves, not guaranteed maxima.
 - The ST website timed out from here. The ST datasheets used were DS5319 Rev 18 (via LCSC) and USBLC6-2 Doc ID 11265 Rev 5 (via LCSC). The pinout and layout guidance have not changed between revisions as far as I know, but I did not diff against the latest ST revision.
 - Stock and prices are from 2026-10-01. USBLC6-2P6 C15999 (2.9k) and USB4085 C7095263 (3.6k) have the thinnest stock.
 
-**Extended-part count for JLC** (each unique Extended part adds a loading fee; Preferred parts and Basic parts do not):
+**Extended-part count for JLC, v1.2 study** (each unique Extended part adds a loading fee; Preferred parts and Basic parts do not). The fitted LDO is TLV76733DRVR C2848334, not TLV75533PDRVR, and the LEDs are the 0402 Everlights, not KT-0603G. See the banner.
 
-- TLV75533PDRVR, USBLC6-2P6, X32258MOB4SI, B3U-1000P and KT-0603G are always Extended.
+- In this v1.2 set, TLV75533PDRVR, USBLC6-2P6, X32258MOB4SI, B3U-1000P and KT-0603G are always Extended.
 - BLM15AG121 is also Extended if you keep the 0402 ferrite.
 - The STM32 is Preferred, so it adds no fee.
 - The cheap reductions are the green LED to 0805 (C2297) and the ferrite to 0603 (C14709).

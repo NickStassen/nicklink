@@ -66,11 +66,12 @@ PARTS = {
     "C13": ("Device:C", "100n", "Capacitor_SMD:C_0402_1005Metric", {"1": "VBUS", "2": "GND"}, {"Note": "USBLC6 VBUS decoupling"}),
 
     # --- Power --------------------------------------------------------------
-    # VBUS -> D2 -> VSYS (LDO input).  VSYS -> F1 (PTC) -> 5V_F -> Q1 (P-FET, gate to GND) -> +5V = J1.1.
+    # VBUS -> R12 -> D2 -> VSYS (LDO input).  VSYS -> F1 (PTC) -> 5V_F -> Q1 (P-FET, gate to GND) -> +5V = J1.1.
     # Q1 conducts both ways whenever VSYS or J1.1 is positive (5V out on USB, 5V in from J1.1) and blocks a
     # reversed supply on J1.1; F1 trips on a J1.1 short or on a reversed J1.1 supply while USB is connected.
-    # R12 damps the USB cable inductance against the ceramic input caps on hot-plug (sim/ bench 09:
-    # without it the LDO input rings to ~12 V, past its 6.0 V abs max; with 1.0 ohm and C12 4.7 uF it peaks at 5.38 V).
+    # R12 damps the USB cable inductance against the ceramic input caps on hot-plug (sim bench 11:
+    # without it the input rings to about 6.1-11.4 V; with 1.0 ohm and C12 4.7 uF the USB peak is 5.38 V).
+    # The fitted regulator is the TLV76733 (VIN/EN abs max 18 V). The 6.0 V figure was the TLV755 it replaced.
     "R12": ("Device:R", "1R", "Resistor_SMD:R_0805_2012Metric", {"1": "VBUS", "2": "VBUS_D"}, {"Note": "Hot-plug damping (anti-surge, 500 mW)", "MPN": "YAGEO SR0805FR-471RL"}),
     "D2": ("Device:D_Schottky", "1N5819WS", "Diode_SMD:D_SOD-323", {"1": "VSYS", "2": "VBUS_D"}, {"Note": "Blocks back-feed from VSYS / the 5V pin into USB"}),  # 1=K, 2=A
     "C12": ("Device:C", "4u7 16V", "Capacitor_SMD:C_0402_1005Metric", {"1": "VSYS", "2": "GND"}, {"Note": "LDO input, 16 V X5R (J1.1 hot-plug ring); USB allows <= 10 uF", "MPN": "Samsung CL05A475MO5NUNC"}),
