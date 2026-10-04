@@ -20,7 +20,7 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 
 **v1.3 reliability pass** (from a five-reviewer audit, the SPICE benches in [`sim/`](sim/) and ST's AN2586/AN4879 checklists):
 
-- **Hot-plug damping:** R12, 1 Ω in series with VBUS, keeps the cable ring under the LDO's 6 V absolute maximum and inrush under 50 µC.
+- **Hot-plug damping:** R12, 1 Ω in series with VBUS, holds the USB hot-plug peak to 5.38 V and inrush under 50 µC. A ring on the 5V pin can still go higher. The regulator survives that because it is the 18 V TLV76733, not because every peak stays under 6 V.
 - **Protected 5V pin:** J1.1 now has a 0.5 A polyfuse (F1) and a reverse-polarity P-MOSFET (Q1), so a short or a reversed supply no longer reaches VSYS unprotected.
 - **D+ pull-up from VBUS** (AN4879 §3.1.1): it is present only while USB is plugged in. Powering from J1.1 no longer back-feeds the host.
 - **Decoupling:** C4 at VDD3 is now 4.7 µF, as DS5319 requires. C12 (LDO input) is 4.7 µF, to keep inrush down.

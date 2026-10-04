@@ -67,11 +67,11 @@ Outputs go to `sim/results/`: `summary.md` (the full report, generated), `*.png`
 9. **Hot-plug fix candidates** (`tb/09_hotplug_fixes.cir`). The power reviewer's topology and its variants (A–D), plus follow-up candidates E–E'', all at the same corners as test 1. Pass needs all three: LDO IN peak ≤ 5.8 V, inrush ≤ 50 µC (full-bias estimate), and 3V3 still regulating at 500 mA with USB at 4.40 V.
 10. **C12 as an RC snubber** (`tb/10_snubber_hotplug.cir`, `tb/10_snubber_loadstep.cir`). Topology A with no series R in the main path; instead C12 4.7 µF 0402 sits behind Rs (0.5 / 1.0 / 2.2 Ω), optionally with a 100 nF or 1 µF 0402 directly on VSYS. Reports hot-plug peak, inrush, Rs pulse power and energy, and load steps through a 1 µH cable. Pass: VSYS peak ≤ 5.8 V and inrush ≤ 50 µC.
 11. **Hot-plug, current spec.py power path** (`tb/11_hotplug_v13.cir`, `NL_RAIL_V13` in `models/board.lib`). R12 swept over 1.0 (as built) / 1.5 / 2.2 Ω, same 8 corners. Also reports the drop and LDO IN at 250 / 500 mA from 4.40 V and 4.75 V, and R12 power.
-12. **Hot-plug into J1.1, and long USB cables** (`tb/12_j11_hotplug.cir`). R12 is not in the J1.1 path: J1.1 → Q1 → F1 → VSYS. A stiff 5.0 / 5.5 V supply is stepped onto J1.1 through 0.1 µH / 30 mΩ (short stiff link) to 2 µH / 0.1 Ω (long bench leads), with F1 at 0.1 Ω (minimum) and 0.3 Ω (typical), and C12 both bias-dependent and linear 1.3 µF. The same bench steps USB through 1.5 / 2 / 3 µH cables at 5.25 / 5.5 V. U2 is passive (Iq only), so one run is checked against the as-built TLV755 (VIN/EN 6.0 V) and a TLV76733 swap (18 V; the limit is then Q1's ±12 V VGS, and C12/F1 at 16 V).
+12. **Hot-plug into J1.1, and long USB cables** (`tb/12_j11_hotplug.cir`). R12 is not in the J1.1 path: J1.1 → Q1 → F1 → VSYS. A stiff 5.0 / 5.5 V supply is stepped onto J1.1 through 0.1 µH / 30 mΩ (short stiff link) to 2 µH / 0.1 Ω (long bench leads), with F1 at 0.1 Ω (minimum) and 0.3 Ω (typical), and C12 both bias-dependent and linear 1.3 µF. The same bench steps USB through 1.5 / 2 / 3 µH cables at 5.25 / 5.5 V. U2 is passive (Iq only), so one run was scored two ways and was not re-run. The 6.0 V rows are the old TLV755 VIN/EN limit (not fitted). The fitted part is the TLV76733DRVR (18 V abs max); the limit used for that score is Q1's ±12 V VGS, with C12 and F1 at 16 V. Those fitted-part rows are "U2 -> TLV76733" in `results/summary.md` (J1.1 hot-plug MARGIN, long-cable USB PASS). Do not read a 6.0 V FAIL as the current board.
 
 ## Results (`results/summary.md` is regenerated on every run)
 
-The table below shows the **as-built v1.3 board** (current `tools/spec.py`). `analyze.py` regenerates it between the markers.
+The table below shows the **as-built v1.3 rail** (R12, C12 4.7 µF 0402, R6 330 Ω, from `tools/spec.py`). `analyze.py` regenerates it between the markers. Bench 12 rows that compare VSYS with 6.0 V are the **old TLV755** limit, not the fitted TLV76733DRVR. The fitted-part scores are the "U2 -> TLV76733" rows in `results/summary.md` (J1.1 MARGIN, long USB cables PASS). The peaks were not re-simulated.
 - Benches 2–4 and 11 use the current rail: R12 1 Ω, C12 4.7 µF 0402, C4 4.7 µF 0402 at VDD3, no C5.
 - Bench 5 reports R6 = 330 Ω.
 - Benches 6–8 are unchanged parts.
@@ -85,8 +85,8 @@ The table below shows the **as-built v1.3 board** (current `tools/spec.py`). `an
 | 1 Hot-plug | As built: 3V3 at 500 mA from USB 4.40 V (above the 250 mA thermal budget) | LDO IN 3.53 V vs 3.538 V needed (max dropout); 3V3 ~3.29 V | **MARGIN** |
 | 1 Hot-plug | v1.3 original (no R12, C12 10u, C5 10u) - why R12 was added: peak +5V vs 6.0 V abs max | 6.13..11.42 V | **FAIL** |
 | 1 Hot-plug | v1.3 original - inrush charge vs USB 50 uC | 63 uC (C12 + 3V3 caps via soft-start) | **FAIL** |
-| 12 J1.1 hot-plug | As built: 5.0 / 5.5 V supply plugged onto J1.1 (leads 0.1-2 uH, F1 0.1 / 0.3 ohm); VSYS <= 6.0 V (TLV755 abs max) | VSYS pk 5.42..9.17 V (linear C12), up to 19.3 V (bias C12); 2 of 20 corners <= 6.0 V | **FAIL** |
-| 12 J1.1 hot-plug | As built: USB hot-plug, 1.5-3 uH cables (2-4 m), 5.25 / 5.5 V; LDO IN <= 6.0 V | <= 2 uH at 5.25 V: 5.92 V; worst (3 uH, 5.5 V): 7.34 V | **MARGIN** |
+| 12 J1.1 hot-plug | Old TLV755 limit, not fitted: 5.0 / 5.5 V supply plugged onto J1.1 (leads 0.1-2 uH, F1 0.1 / 0.3 ohm); VSYS <= 6.0 V. Fitted part is the TLV76733 row in the second table (MARGIN) | VSYS pk 5.42..9.17 V (linear C12), up to 19.3 V (bias C12); 2 of 20 corners <= 6.0 V | **FAIL (against 6.0 V only)** |
+| 12 J1.1 hot-plug | Old TLV755 limit, not fitted: USB hot-plug, 1.5-3 uH cables (2-4 m), 5.25 / 5.5 V; LDO IN <= 6.0 V. Fitted TLV76733 score for this peak is PASS (<= 12 V) | <= 2 uH at 5.25 V: 5.92 V; worst (3 uH, 5.5 V): 7.34 V | **MARGIN (against 6.0 V only)** |
 | 2 LDO | Start-up: monotonic, overshoot < 3 % | 367 us to 90 %, overshoot 0.02 % | **PASS** |
 | 2 LDO | Load steps 0/50/250 mA, 1 us edges: within 3.3 V +-3 %, settle < 100 us | worst deviation 31 mV, settle 28 us | **PASS** |
 | 2 LDO | Stability: TI condition COUT_eff >= 0.47 uF, nominal 1..200 uF, ceramic ESR (vendor model has no loop, no phase margin) | COUT_eff 3.2 uF; C8 alone 0.60 uF | **PASS** |
@@ -149,10 +149,10 @@ Topology A: VBUS → U3/C13 → D2 → VSYS (C12 4.7 µF 0402, LDO IN) → F1 PT
 
 Shrinking C12 without adding resistance makes the ring worse, not better. A smaller C raises the cable/C12 impedance, so a larger series resistance is needed to damp it. The PTC's 0.1–0.6 Ω spread is not a dependable damper.
 
-**Recommendation: option E.** Keep the reviewer's topology, but:
-- use a 4.7 µF **0603** for C12 (it holds about 2 µF at 5 V, where a 0402 holds about 1.3 µF);
-- add a 0.75 Ω 1206 resistor between VBUS (after U3/C13) and D2 (188 mW at 500 mA);
-- reduce C5 to 4.7 µF 0603. Effective COUT is about 3.7 µF, still well above TI's 0.47 µF minimum.
+**Not the fitted board.** This study recommended option E. v1.3 is built with R12 = 1 Ω 0805 and C12 = 4.7 µF 16 V **0402** (Samsung CL05A475MO5NUNC, C318563), not a 0603 and not an extra 0.75 Ω. The study's suggestion, left here as history, was:
+- a 4.7 µF **0603** for C12 (it holds about 2 µF at 5 V, where a 0402 holds about 1.3 µF);
+- a 0.75 Ω 1206 resistor between VBUS (after U3/C13) and D2 (188 mW at 500 mA);
+- C5 reduced to 4.7 µF 0603. Effective COUT would have been about 3.7 µF, still well above TI's 0.47 µF minimum.
 
 Minimum package rating at 500 mA for each series resistor:
 
@@ -196,7 +196,7 @@ Topology A: VBUS → U3/C13 → D2 → VSYS (= LDO IN), with J1.1 open and no se
 | DC drop | none (LDO IN 4.03 V at 500 mA, USB 4.40 V) | 0.37 V more |
 | C12 | behind Rs | directly at the LDO pin |
 
-**Option E remains my recommendation** unless DC headroom at 500 mA matters more than peak margin.
+**Option E was this study's recommendation, and it is not what was built.** The fitted path is R12 = 1 Ω with C12 4.7 µF 16 V 0402 (test 11), not the 0603 in option E.
 
 ## Hot-plug, current spec.py power path (test 11, run 2026-10-02)
 
@@ -221,7 +221,7 @@ R12 dissipates 250 mW at 500 mA, half the 500 mW stated in spec.py's note. Check
 
 ## Design recommendations
 
-1. **Hot-plug: done in spec.py.** R12 = 1 Ω was added (test 11: 5.38 V peak, 33 µC). The rest of this item is the original analysis of the v1.3 original power path. A ceramic-only input rings. 10 µF ceramic (about 3.5 µF at 5 V) with 0.5–1 µH of cable gives Z0 ≈ 0.4–0.5 Ω, and with only 0.1–0.3 Ω of damping, D2 then latches the ring peak onto C12. The +5V rail reaches 6.1–11.4 V, above the TLV755's 6 V absolute maximum and above C12's 10 V rating.
+1. **Hot-plug: done in spec.py.** R12 = 1 Ω was added (test 11: 5.38 V peak, 33 µC). The rest of this item is the original analysis of the v1.3 original power path. A ceramic-only input rings. 10 µF ceramic (about 3.5 µF at 5 V) with 0.5–1 µH of cable gives Z0 ≈ 0.4–0.5 Ω, and with only 0.1–0.3 Ω of damping, D2 then latches the ring peak onto C12. The +5V rail reaches 6.1–11.4 V, above the then-fitted TLV755's 6 V absolute maximum and above that original C12's 10 V rating. The fitted regulator is the 18 V TLV76733, and C12 is the 16 V 4.7 µF 0402.
    - A TVS does not fix it: VBR ≥ 6.4 V plus the clamp slope is still above 6 V on +5V.
    - Bulk capacitance only works at ≥ 47 µF with ESR, which breaks the USB inrush limit.
    - **Recommended:** add a 1 Ω resistor (0805, ≥ 0.125 W) in series between VBUS (after U3/C13) and D2. Peak becomes 5.26 V and peak current falls from 14 A to 4 A. The cost is about 0.25 V more drop at 250 mA. Regulation still holds down to VBUS ≈ 4.0 V, inside USB's 4.40 V minimum.

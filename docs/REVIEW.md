@@ -54,7 +54,7 @@ Five independent reviewers checked v1.3 at commit a913740, one area each. They c
 
 **Fixed:**
 - **CPL rotations:** `tools/fab.sh` adds per-footprint JLC corrections (LQFP-48 −90°, SOT-666 +180°, LGA-14 +180°), checked against JLC's EasyEDA footprints. U1 = 0, U3 = 90, U4 = 180.
-- **LDO:** output cap C8 sits next to U2 OUT (0.95 mm, top layer). C12 becomes 10 µF 0603 for input decoupling and USB hot-plug damping. Two 0.3 mm thermal vias go under the exposed pad (project footprint `WSON-6-…_ThermalVias03`).
+- **LDO:** output cap C8 sits next to U2 OUT (0.95 mm, top layer). C12 becomes 10 µF 0603 for input decoupling and USB hot-plug damping. *(Superseded: the reliability pass changed C12 to 4.7 µF, and the second wave fitted the 16 V 0402 Samsung CL05A475MO5NUNC, C318563. Not 10 µF 0603.)* Two 0.3 mm thermal vias go under the exposed pad (project footprint `WSON-6-…_ThermalVias03`).
 - **IMU INT1:** goes to A0 through a new 10 kΩ resistor, R10. INT1's power-up "forced to ground" state is now only a weak pull-down on A0.
 - **USB4085:** 0.38 mm holes in 0.74 mm pads. That is inside GCT's 0.40 ± 0.05 mm spec and keeps JLC's 0.18 mm ring. The 0.11 mm pad gap is covered by a footprint-scoped DRC rule; JLC's minimum is 0.10 mm. The GND pins use thermal reliefs for hand soldering.
 - **IMU layout:**
@@ -87,9 +87,9 @@ This pass follows up the audit's known limitations and an STM32 best-practice au
 
 | Change | Why | Evidence |
 |---|---|---|
-| **R12 1 Ω 0805 anti-surge** (Yageo SR0805, 0.5 W) in series with VBUS | USB hot-plug ringing reached 6.1–11.4 V at LDO IN without it (abs max 6.0 V) | SPICE bench 11: 5.38 V worst case over 8 cable/clamp corners; R12 pulse 13 W / 44 µJ, about 100 W rated |
+| **R12 1 Ω 0805 anti-surge** (Yageo SR0805, 0.5 W) in series with VBUS | USB hot-plug ringing reached 6.1–11.4 V at LDO IN without it (abs max 6.0 V on the TLV755 then fitted) | SPICE bench 11: 5.38 V worst case over 8 cable/clamp corners; R12 pulse 13 W / 44 µJ, about 100 W rated. *(The fitted regulator is the TLV76733, 18 V; see the second review wave.)* |
 | **C12 10 µF → 4.7 µF**; the 10 µF 3V3 bulk (C5) removed | USB inrush ≤ 50 µC | 33 µC as built |
-| **F1 0.5 A PPTC (16 V) + Q1 DMP2165UW** on the J1.1 branch only | 5V-pin short (J1.1 is next to GND) or reversed supply | A short trips F1 while the MCU keeps running; Q1 blocks a reversed supply |
+| **F1 0.5 A PPTC (16 V) + Q1 DMP2165UW** on the J1.1 branch only | 5V-pin short (J1.1 is next to GND) or reversed supply | A short trips F1 while the MCU keeps running; Q1 blocks a reversed supply. *(Superseded: VSYS collapses during the trip and the MCU resets once. See the second-wave notes and the README.)* |
 | **C4 (VDD3) 100 nF → 4.7 µF** | DS5319 Fig. 14: the 4.7 µF must be on VDD3 | — |
 | **D+ pull-up from VBUS**: R2 2.2 kΩ + R11 4.7 kΩ (1.5 kΩ Thevenin to 3.4 V) | AN4879 §3.1.1: the pull-up must only be present with VBUS. This removes the J1.1 back-feed into the host. | — |
 | **R6 1k5 → 330 Ω** | The user LED was dim at 0.4 mA | 1.32 mA typical, 0.95–1.79 mA across bins, PC13 limit 3 mA |
