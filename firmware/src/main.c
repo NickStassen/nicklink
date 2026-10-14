@@ -1,22 +1,23 @@
-/* NickLink v1.3 board-test firmware (STM32F103C8, bare metal).
- * USART1 console on PA9/PA10 at 115200 8N1. Type `help`. */
+/* NickLink v1.3 board-test firmware (STM32F103C8, bare metal), started by the USB DFU bootloader.
+ * Console on USB-C (CDC ACM, 1209:0001) and on USART1 PA9/PA10 at 115200 8N1. Type `help`. */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include "regs.h"
 #include "pins.h"
+#include "usb_cdc.h"
 
 /* Tap/wake tuning knobs (LSM6DSV units, same as LSM6DSV16X: tap 1 LSB = FS/32 = 62.5 mg at +-2 g, wake 1 LSB = 7.8 mg) */
 #define TAP_THS  8      /* 0.5 g */
 #define WAKE_THS 32     /* 0.25 g */
-#define TAP_DUR  0x7A   /* DUR=7 (double-tap window), QUIET=2, SHOCK=2 */
+#define TAP_DUR  0x7F   /* DUR=7 (double-tap window ~0.47 s), QUIET=3 (25 ms), SHOCK=3 (50 ms) at 480 Hz: ST AN5763 timing */
 
 #define IMU_ADDR 0x6A
 enum { IN_ANALOG = 0x0, IN_FLOAT = 0x4, IN_PULL = 0x8, OUT_PP = 0x2, OUT_OD = 0x6, AF_PP = 0xB, AF_OD = 0xF };
 
 static volatile uint32_t ticks;          /* ms since boot */
 static volatile int led_auto = 1;
-static volatile uint8_t rxbuf[64];
+static volatile uint8_t rxbuf[256];                 /* console input from USART1 and USB; uint8_t wraps at 256 */
 static volatile uint8_t rx_head, rx_tail;
 static volatile int int1_pending;
 static volatile uint32_t sysclk = 8000000;
@@ -24,6 +25,7 @@ static const char *volatile clock_msg = "HSI 8 MHz";
 static uint32_t reset_csr;
 static int imu_ok;
 static int standby_wake;
+static int usb_on;
 
 /* ---- basics ----------------------------------------------------------- */
 void SysTick_Handler(void) {
@@ -32,6 +34,7 @@ void SysTick_Handler(void) {
 }
 
 static void delay_ms(uint32_t ms) { uint32_t t0 = ticks; while (ticks - t0 < ms) {} }
+uint32_t millis(void) { return ticks; }
 
 static void pin_mode(int port, int pin, int mode) {
     volatile uint32_t *cr = pin < 8 ? &GPIO_CRL(port) : &GPIO_CRH(port);
@@ -89,20 +92,32 @@ static void clock_init(void) {
 }
 
 /* ---- console ---------------------------------------------------------- */
+/* Both ISRs run at the same priority, so they never interrupt each other on rx_head. */
+int console_rx_push(uint8_t c) {
+    uint8_t n = rx_head + 1;
+    if (n == rx_tail) return 0;
+    rxbuf[rx_head] = c; rx_head = n;
+    return 1;
+}
+unsigned console_rx_free(void) { return 255u - (uint8_t)(rx_head - rx_tail); }
 void USART1_IRQHandler(void) {
-    if (USART1_SR & (1u << 5)) {                                /* RXNE */
-        uint8_t c = USART1_DR, n = (rx_head + 1) % sizeof rxbuf;
-        if (n != rx_tail) { rxbuf[rx_head] = c; rx_head = n; }
-    }
+    if (USART1_SR & (1u << 5)) console_rx_push(USART1_DR);     /* RXNE */
 }
 static int getch(void) {
     if (rx_head == rx_tail) return -1;
-    int c = rxbuf[rx_tail]; rx_tail = (rx_tail + 1) % sizeof rxbuf; return c;
+    int c = rxbuf[rx_tail]; rx_tail++; return c;
 }
 static void putch(char c) { while (!(USART1_SR & (1u << 7))) {} USART1_DR = c; }
-int _write(int fd, const char *p, int n) {
+int _write(int fd, const char *p, int n) {                     /* printf: USART1 and USB, \n -> \r\n */
     (void)fd;
-    for (int i = 0; i < n; i++) { if (p[i] == '\n') putch('\r'); putch(p[i]); }
+    char buf[64];
+    int k = 0;
+    for (int i = 0; i < n; i++) {
+        if (p[i] == '\n') { putch('\r'); buf[k++] = '\r'; }
+        putch(p[i]); buf[k++] = p[i];
+        if (k >= (int)sizeof buf - 1) { if (usb_on) usb_cdc_write(buf, k); k = 0; }
+    }
+    if (k && usb_on) usb_cdc_write(buf, k);
     return n;
 }
 static void uart_init(void) {
@@ -263,10 +278,11 @@ static void print_info(void) {
     printf("RCC_CFGR 0x%08lX, PVD 2.9 V: VDD %s, %s\n", (unsigned long)RCC_CFGR,
            PWR_CSR & (1u << 2) ? "BELOW threshold" : "ok", standby_wake ? "woke from Standby" : "not from Standby");
     uint32_t c = reset_csr;
-    printf("reset cause:%s%s%s%s%s%s (RCC_CSR 0x%08lX)\n",
+    printf("reset cause:%s%s%s%s%s%s%s (RCC_CSR 0x%08lX)\n",
            c & (1u << 27) ? " power-on" : "", c & (1u << 28) ? " software" : "",
            c & (1u << 29) ? " IWDG" : "", c & (1u << 30) ? " WWDG" : "", c & (1u << 31) ? " low-power" : "",
-           (c & (0x3Fu << 26)) == (1u << 26) ? " NRST pin (RESET button)" : "", (unsigned long)c);
+           (c & (0x3Fu << 26)) == (1u << 26) ? " NRST pin (RESET button)" : "",
+           c & (0x3Fu << 26) ? "" : standby_wake ? " wake-up from Standby (sets no reset flag)" : " none", (unsigned long)c);
     /* BOOT0 isn't a GPIO; infer it from what is aliased at 0x0 (flash only when BOOT0 was low at reset) */
     int flash_alias = R32(0x00000004) == R32(0x08000004);
     printf("boot: %s; BOOT1/PB2 reads %d (10k pull-down, want 0)\n",
@@ -274,6 +290,10 @@ static void print_info(void) {
            pin_get(PB, 2));
     printf("flash size reg %u KB, UID %08lX%08lX%08lX\n", FLASH_SIZE_KB,
            (unsigned long)UID(2), (unsigned long)UID(1), (unsigned long)UID(0));
+    int boot = (R32(0x08000000) & 0x2FFE0000u) == 0x20000000u;  /* a stack pointer = a bootloader is there */
+    printf("bootloader: %s\n", boot ? "USB DFU at 0x08000000, this app at 0x08002000 (`dfu` or double-tap RESET to enter)"
+                                    : "NONE at 0x08000000 (flash nicklink-full.hex with the ST-Link)");
+    printf("USB: %s\n", sysclk == 72000000 ? "console on USB-C (CDC ACM 1209:0001)" : "off (needs SYSCLK 72 MHz from the crystal)");
 }
 
 static void print_pins(void) {
@@ -369,6 +389,8 @@ static void cmd_standby(void) {
     if (pin_get(PA, 0)) printf("warning: PA0 is high, a rising edge is needed to wake\n");
     printf("entering Standby; rising edge on PA0 (or RESET) wakes\n");
     while (!(USART1_SR & (1u << 6))) {}                         /* TC: let the text out */
+    delay_ms(20);                                               /* and over USB */
+    NVIC_ICER0 = 1u << 20; USB_CNTR = 3;                        /* USB off (FRES, PDWN) */
     SYST_CSR = 0; USART1_CR1 &= ~(1u << 5); EXTI_IMR &= ~1u;    /* no pending interrupt may cancel WFI */
     PWR_CR |= (1u << 2) | (1u << 1);                            /* CWUF, PDDS */
     PWR_CSR |= 1u << 8;                                         /* EWUP */
@@ -416,9 +438,10 @@ static void run(char *line) {
     char *cmd = strtok(line, " "), *arg = strtok(NULL, " ");
     if (!cmd) return;
     if (!strcmp(cmd, "help"))
-        printf("info | pins | walk [ms] [all] | mon | imu | i2cscan | mco [hse|pll|hsi|off] | adc | standby | reset\n"
+        printf("info | pins | walk [ms] [all] | mon | imu | i2cscan | mco [hse|pll|hsi|off] | adc | standby | reset | dfu\n"
                "  walk: drive each header GPIO high then low, check readback + shorts (all = include SWD)\n"
-               "  mon:  print header input changes (jumper a pin to 3V3 to test it)\n");
+               "  mon:  print header input changes (jumper a pin to 3V3 to test it)\n"
+               "  dfu:  reboot into the USB DFU bootloader (then: make dfu, or dfu-util -d 1209:db42 -D app.bin)\n");
     else if (!strcmp(cmd, "info") || !strcmp(cmd, "clock")) print_info();
     else if (!strcmp(cmd, "pins")) print_pins();
     else if (!strcmp(cmd, "walk")) {
@@ -443,12 +466,26 @@ static void run(char *line) {
     else if (!strcmp(cmd, "adc")) cmd_adc();
     else if (!strcmp(cmd, "standby")) cmd_standby();
     else if (!strcmp(cmd, "reset")) { printf("resetting\n"); delay_ms(5); SCB_AIRCR = 0x05FA0004; }
+    else if (!strcmp(cmd, "dfu")) {
+        printf("rebooting into the DFU bootloader (green LED solid on)\n");
+        delay_ms(20);                                           /* let the text out over USB */
+        RCC_APB1ENR |= (1u << 28) | (1u << 27);                 /* PWR, BKP */
+        PWR_CR |= 1u << 8;                                      /* DBP: backup domain writable */
+        BKP_DR1 = 0x4F42;                                       /* dapboot's "BOOT" command word */
+        SCB_AIRCR = 0x05FA0004;
+    }
     else printf("? %s (try help)\n", cmd);
 }
 
-/* No USB stack in this build: hold D+ low so the host sees "nothing attached" instead of a device
- * that never answers. A USB build must release PA12 (>= 10 ms after boot) to force re-enumeration. */
+/* Hold D+ low from boot, then hand PA11/PA12 to the USB peripheral: the host sees a disconnect
+ * (>= 10 ms) and enumerates us fresh, also after a reset from the bootloader or a debugger. */
 static void usb_detach(void) { pin_set(PA, 12, 0); pin_mode(PA, 12, OUT_OD); }
+static void usb_start(void) {
+    if (sysclk != 72000000) return;                             /* USB clock = PLL / 1.5 needs 72 MHz */
+    pin_mode(PA, 12, IN_FLOAT);
+    usb_cdc_init("NickLink v" BOARD_REV " test console");
+    usb_on = 1;
+}
 
 int main(void) {
     reset_csr = RCC_CSR;
@@ -467,17 +504,41 @@ int main(void) {
     print_info();
     i2c_init();
     imu_ok = imu_init();
+    usb_start();
     printf("type 'help'\n> ");
 
     char line[48];
     unsigned len = 0;
+    uint32_t banner_at = 0;                                     /* millis() | 1 when a terminal opened the USB port */
+    uint32_t quiet_at = 0;                                      /* millis() | 1 when the banner finished going out */
+    int banner_sent = 0;
     for (;;) {
         if (int1_pending) { int1_pending = 0; imu_event(); }
+        if (usb_on) {
+            usb_cdc_poll();
+            if (usb_cdc_take_open_event()) banner_at = millis() | 1;
+            /* Print the banner 100 ms after the port opens. The PC's tty echoes input until the terminal
+             * program switches it to raw mode, so the banner can come back as junk input: input is dropped
+             * while the banner goes out and for 150 ms after it has reached the PC. */
+            if (banner_at && millis() - banner_at >= 100) {
+                banner_at = 0;
+                print_info();
+                printf("IMU: %s\ntype 'help'\n> ", imu_ok ? "OK (WHO_AM_I 0x70, tap/wake -> A0)" : "NOT responding");
+                len = 0;
+                banner_sent = 1;
+            }
+            if (banner_sent && usb_cdc_tx_idle()) { banner_sent = 0; quiet_at = millis() | 1; }
+        }
         int c = getch();
         if (c < 0) continue;
+        if (banner_sent) continue;                              /* the PC echoing the banner as it arrives */
+        if (quiet_at) {
+            if (millis() - quiet_at < 150) continue;            /* ... and its last packets */
+            quiet_at = 0;
+        }
         if (c == '\r' || c == '\n') {
             printf("\n"); line[len] = 0; run(line); len = 0; printf("> ");
         } else if ((c == 8 || c == 127) && len) { len--; printf("\b \b"); }
-        else if (c >= ' ' && len < sizeof line - 1) { line[len++] = c; putch(c); }
+        else if (c >= ' ' && len < sizeof line - 1) { line[len++] = c; char e = c; _write(1, &e, 1); }
     }
 }

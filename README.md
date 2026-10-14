@@ -12,7 +12,7 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 
 </details>
 
-**New board?** Follow the [bring-up guide](docs/BRINGUP.md): wiring for an STLINK-V3MINIE, a prebuilt test firmware and a checklist for every part.
+**New board?** Follow the [bring-up guide](docs/BRINGUP.md): wiring for an STLINK-V3MINIE, a prebuilt USB DFU bootloader and test firmware, and a checklist for every part. After one ST-Link flash, the board is updated and tested over USB-C alone.
 
 ## What changed
 
@@ -88,7 +88,8 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 Pins not marked "3.3 V only" are 5 V tolerant (FT) while the board is powered. B6/B7 are FT on the MCU but not at board level, because the IMU on that bus is limited to 3.6 V. PA1–PA7, PB0 and PB1 are also ADC inputs. PA0 is too, but it has the IMU interrupt on it (below). [`docs/pinout.csv`](docs/pinout.csv) has the same table in machine-readable form.
 
 - **SWD:** J3.1 3V3 (target voltage sense), J3.2 GND, J3.7 SWDIO, J3.8 SWCLK, J3.10 NRST, optional J3.9 SWO.
-- **Serial bootloader:** hold BOOT, tap RESET, release BOOT, then use USART1 on J3.3 (TX) / J3.4 (RX). This is ST's factory USART bootloader; the F103 has no factory USB DFU bootloader.
+- **USB bootloader:** the F103 has no factory USB DFU bootloader, so [`firmware/bootloader/`](firmware/bootloader/) adds one (dapboot, in the first 8 KiB of flash). Programs are linked at 0x08002000 and loaded over USB-C with `dfu-util`. Enter it with a double-tap of RESET, or J1.9 to 3V3 at reset.
+- **Serial bootloader:** hold BOOT, tap RESET, release BOOT, then use USART1 on J3.3 (TX) / J3.4 (RX). This is ST's factory USART bootloader, in ROM, so it always works for recovery.
 - **I2C1 / IMU:** I2C1 has on-board 4.7 kΩ pull-ups. External I2C modules can share the bus as long as they avoid address 0x6A and **pull up to 3.3 V only**. A 5 V module needs a level shifter, because the IMU's SCL/SDA limit is 3.6 V. If modules bring their own pull-ups, keep the combined value above about 1.5 kΩ. The 4.7 kΩ pull-ups meet the 400 kHz rise-time limit up to about 75 pF of bus capacitance (roughly 30 cm of wiring plus a few modules); for longer runs, use 100 kHz.
 - **A0 has the IMU's INT1 on it through 10 kΩ.** INT1 drives low whenever no interrupt is asserted, so A0 always sees a 10 kΩ pull-down (also with INT1 set to open-drain, which only releases the pin while active-high). The interrupt is active high, matching WKUP's rising edge. You can still drive A0 from outside, or use it as an ADC input from a low-impedance source. Making A0 truly high-impedance needs INT1 set active-low open-drain (`H_LACTIVE` + `PP_OD`, IF_CFG 03h), which inverts the interrupt and stops it from waking the MCU through WKUP.
 - **J3.6/J3.9/J3.11 (PA15/PB3/PB4) are JTAG pins at reset:** PA15 and PB4 have internal pull-ups and PB3 (JTDO/SWO) has none, until firmware frees them (`__HAL_AFIO_REMAP_SWJ_NOJTAG()` keeps SWD and releases them). PA13/PA14 stay SWD unless you disable SWJ completely, after which the debugger has to connect under reset (NRST is on J3.10).
@@ -183,7 +184,7 @@ KiCad 10.0.6: **0 DRC violations, 0 unconnected items, 0 schematic-parity issues
 
 The BOM carries verified LCSC part numbers for every part, through-hole included. To order, upload `fabrication/v1.3/nicklink_gerbers.zip`, then for assembly `nicklink_BOM_JLC.csv` and `nicklink_CPL.csv`. Several parts are JLC "Extended" parts, which add a per-part loading fee; see [`tools/parts_research.md`](tools/parts_research.md).
 
-**Bring-up and board test:** [`docs/BRINGUP.md`](docs/BRINGUP.md) walks through the first power-up of a new board, wiring an STLINK-V3MINIE to J3, flashing the prebuilt test firmware ([`firmware/prebuilt/`](firmware/prebuilt/)) and a 14-step checklist. The checklist covers power, crystal, LEDs, buttons, IMU, every header GPIO, ADC and Standby wake.
+**Bring-up and board test:** [`docs/BRINGUP.md`](docs/BRINGUP.md) walks through the first power-up of a new board, wiring an STLINK-V3MINIE to J3 once to flash the USB bootloader and test firmware ([`firmware/prebuilt/`](firmware/prebuilt/)), and a checklist run over USB-C. The checklist covers power, crystal, LEDs, buttons, USB, IMU, every header GPIO, ADC and Standby wake.
 
 [![STLINK-V3MINIE to NickLink wiring](docs/images/bringup-stlink-wiring.png)](docs/BRINGUP.md)
 

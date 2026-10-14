@@ -1,0 +1,12 @@
+# NickLink: let the logged-in user flash over USB (DFU bootloader) and open the test console without sudo.
+# Install once:
+#   sudo cp firmware/udev/70-nicklink.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload && sudo udevadm trigger
+# (70-: must sort before 73-seat-late.rules, which applies the uaccess tag.)
+
+# DFU bootloader (dapboot)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="db42", TAG+="uaccess"
+
+# Test-firmware USB console (CDC ACM): keep ModemManager from probing it
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="0001", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="0001", ENV{ID_MM_DEVICE_IGNORE}="1"

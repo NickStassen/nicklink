@@ -16,7 +16,7 @@ Create NickLink
     Reset Emulation
     Execute Command           path add @${CURDIR}
     Execute Command           $elf=@${CURDIR}/../build/nicklink-test.elf
-    Execute Command           $raw=@${CURDIR}/../build/nicklink-test.bin
+    Execute Command           $full=@${CURDIR}/../build/nicklink-full.bin
     Execute Command           include @${CURDIR}/nicklink.resc
     Create Terminal Tester    ${UART}    timeout=5
 
@@ -47,6 +47,8 @@ Banner Reports 72 MHz From HSE And Power-On Reset
     Wait For Line On Uart     RCC_CFGR 0x001D840A
     Wait For Line On Uart     reset cause: power-on
     Wait For Line On Uart     boot: flash aliased at 0x0 (BOOT0 was low); BOOT1/PB2 reads 0
+    Wait For Line On Uart     bootloader: USB DFU at 0x08000000, this app at 0x08002000
+    Wait For Line On Uart     USB: console on USB-C
     Wait For Line On Uart     ${PROMPT}
 
 HSE Failure Falls Back To HSI

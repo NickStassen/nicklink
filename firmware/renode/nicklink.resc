@@ -1,15 +1,18 @@
 # NickLink v1.3 machine. Run from this directory (or `path add @<this dir>` first): renode nicklink.resc, then `start`.
 $elf?=@../build/nicklink-test.elf
-$raw?=@../build/nicklink-test.bin
+$full?=@../build/nicklink-full.bin
 include @NickLinkRCC.cs
 include @LSM6DSV16X.cs
 mach create "nicklink"
 machine LoadPlatformDescription @nicklink.repl
 macro reset
 """
-    sysbus LoadELF $elf
-    # BOOT0 low: flash is aliased at 0x0 (Renode maps 0x0 and 0x08000000 separately)
-    sysbus LoadBinary $raw 0x0
+    # DFU bootloader (0x08000000) + test firmware (0x08000000 + 8 KiB), as on a real board. The CPU
+    # starts in the bootloader, which jumps to the app. BOOT0 low: flash is also aliased at 0x0
+    # (Renode maps 0x0 and 0x08000000 separately).
+    sysbus LoadBinary $full 0x08000000
+    sysbus LoadBinary $full 0x0
+    sysbus LoadSymbolsFrom $elf
     # F_SIZE: 64 KB flash
     sysbus WriteWord 0x1FFFF7E0 64
 """

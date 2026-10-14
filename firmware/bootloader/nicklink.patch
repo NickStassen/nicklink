@@ -1,0 +1,64 @@
+diff --git a/src/stm32f103/target_stm32f103.c b/src/stm32f103/target_stm32f103.c
+index 1965c0e..602c5c7 100644
+--- a/src/stm32f103/target_stm32f103.c
++++ b/src/stm32f103/target_stm32f103.c
+@@ -59,10 +59,15 @@ _Static_assert((FLASH_BASE + FLASH_SIZE_OVERRIDE >= APP_BASE_ADDRESS),
+ #define REG_BOOT BKP1
+ #endif
+ 
++#ifdef HAVE_DOUBLE_TAP
++bool target_double_tap(bool force);
++#endif
++
+ #ifndef CMD_BOOT
+ #define CMD_BOOT 0x4F42UL
+ #endif
+ 
++#ifndef TARGET_CUSTOM_CLOCK
+ void target_clock_setup(void) {
+ #ifdef USE_HSI
+     /* Set the system clock to 48MHz from the internal RC oscillator.
+@@ -74,6 +79,7 @@ void target_clock_setup(void) {
+     rcc_clock_setup_in_hse_8mhz_out_72mhz();
+ #endif
+ }
++#endif
+ 
+ void target_gpio_setup(void) {
+     /* Enable GPIO clocks */
+@@ -203,12 +209,18 @@ bool target_get_force_bootloader(void) {
+     }
+ #endif
+ 
++#ifdef HAVE_DOUBLE_TAP
++    force = target_double_tap(force);
++#endif
++
+     return force;
+ }
+ 
++#ifndef TARGET_CUSTOM_SERIAL
+ void target_get_serial_number(char* dest, size_t max_chars) {
+     desig_get_unique_id_as_string(dest, max_chars+1);
+ }
++#endif
+ 
+ static uint16_t* get_flash_end(void) {
+ #ifdef FLASH_SIZE_OVERRIDE
+diff --git a/src/targets.mk b/src/targets.mk
+index 70aab59..7e1b65a 100644
+--- a/src/targets.mk
++++ b/src/targets.mk
+@@ -20,6 +20,12 @@ ifeq ($(TARGET),STM32F103)
+ 	LDSCRIPT			:= ./stm32f103/stm32f103x8.ld
+ 	ARCH				= STM32F1
+ endif
++ifeq ($(TARGET),NICKLINK)
++	TARGET_COMMON_DIR	:= ./stm32f103
++	TARGET_SPEC_DIR		:= ./stm32f103/nicklink
++	LDSCRIPT			:= ./stm32f103/stm32f103x8.ld
++	ARCH				= STM32F1
++endif
+ ifeq ($(TARGET),BLUEPILL)
+ 	TARGET_COMMON_DIR	:= ./stm32f103
+ 	TARGET_SPEC_DIR		:= ./stm32f103/bluepill
