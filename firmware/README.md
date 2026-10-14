@@ -96,6 +96,7 @@ At boot the firmware prints a banner: clock source, reset cause, boot mode, boot
 | `walk [ms] [all]` | Walks the header GPIOs one at a time. Each pin is driven high, then low, for `ms` per level (default 500), while the other header pins are pulled down. Probe each one with a meter or LED as it goes. It also checks that the pin reads back and that no other header pin follows it (solder bridge), and prints `FAIL ...` lines and a fault count. PA9/PA10 (console) are always skipped. PA13/PA14 (SWD) are skipped unless you add `all`, which turns SWD off until the next reset. Any key aborts. |
 | `mon` | Loopback/monitor. All header GPIOs become pulled-down inputs, and every level change is printed. Jumper a pin to 3V3, or to another pin you drive, to test it. PB6/PB7 read 1 because of their 4.7k pull-ups. Any key exits. |
 | `imu` | Reads accel (mg), gyro (dps) and temperature once. |
+| `stream [hz]` | Raw IMU samples at a fixed rate (default 200 Hz, up to 500) until any key: `S <ms> ax ay az gx gy gz`, accel 0.061 mg/LSB and gyro 70 mdps/LSB. While a terminal has the USB port open they go to USB only, so USART1's baud rate doesn't limit them. `imu_viewer.py` uses it. |
 | `i2cscan` | Scans I2C1. Expect `0x6A`. |
 | `mco [hse\|pll\|hsi\|off]` | Clock output on PA8 (J3.5). Default HSE (expect 8.000 MHz). `pll` = PLL/2 = 36 MHz. Use it to check the crystal frequency without loading the crystal with a probe (README bring-up step 3). |
 | `clock` | Same as `info`. |
@@ -127,6 +128,17 @@ The firmware also does these at boot:
 
 Not included: SFLP game-rotation-vector FIFO output, which needs embedded-function-bank access and half-float decoding. Add it when a project needs it; `usb_cdc.c` is reusable for streaming the result to a PC.
 
+## 3D IMU viewer
+
+`imu_viewer.py` shows a 3D model of the board that follows the real one, from the IMU. It starts `stream` on the USB console, removes the gyro's offset, and fuses gyro and gravity with a Madgwick filter. The model uses the board's real dimensions and part positions from `nicklink.kicad_pcb`.
+
+```sh
+python3 imu_viewer.py            # finds /dev/serial/by-id/usb-NickLink*; or give the port
+python3 imu_viewer.py --selftest # checks the filter maths, no board needed
+```
+
+It needs PyQt6 and numpy (`pip install PyQt6 numpy`), and runs on Linux or macOS. Lay the board still for a moment after it connects, so the gyro offset can be measured. The mouse orbits and zooms the view. **R** zeroes the heading, **C** measures the gyro offset again (hold still), and **Space** freezes the view. Tilt is absolute, because gravity corrects it. Heading slowly drifts, because the board has no magnetometer.
+
 ## Emulation (Renode)
 
 ```sh
@@ -152,6 +164,7 @@ Tests in `renode/test.robot`:
 | HSE Failure Falls Back To HSI | With `HseBroken`, the bootloader falls back to HSI and still starts the firmware, which reports the HSE failure and runs at 64 MHz without hanging |
 | User LED Blinks At 1 Hz | LED model state toggles at 0.5 s on / 0.5 s off |
 | IMU WHO_AM_I And Sample | WHO_AM_I = 0x70, config readback OK, `imu` scales the values the model was set to (−1 g, 1 g, 70 dps, 25.0 C), `i2cscan` finds only 0x6A |
+| Stream Prints Raw IMU Samples | `stream 50` reports its rate and prints `S` lines with the raw values the model was set to; a key stops it |
 | Tap Double-Tap And Wake On INT1 | Each event arrives through INT1 → PA0 → EXTI0 and prints `tap` / `double-tap` / `wake`; PA0 is low again afterwards (latch released) |
 | Pins Command Lists Generated Map | `pins` output matches spec.py rows |
 | GPIO Walk Drives Each Header Pin Alone | For every walked header pin (list parsed from the generated `pins.h`): the pin is high in the GPIO model, it is the **only** pin set on ports A/B/C, then it goes low; `0 faults` |

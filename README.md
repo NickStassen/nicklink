@@ -137,7 +137,7 @@ The axes are right-handed, and the gyroscope follows the right-hand rule. For ex
 | On its J3 edge (J1 up) | +X |
 | On its J1 edge (J3 up) | −X |
 
-The "flat" and "USB-C up" rows were measured on a v1.3 board; the rest follow from the right-handed axes. The test firmware's `imu` command prints accel and gyro in these axes.
+The "flat" and "USB-C up" rows were measured on a v1.3 board; the rest follow from the right-handed axes. The test firmware's `imu` and `stream` commands report accel and gyro in these axes. [`firmware/imu_viewer.py`](firmware/README.md#3d-imu-viewer) shows the board's orientation live in 3D over USB-C.
 
 Features useful here:
 - **On-chip sensor fusion (SFLP):** outputs a game rotation vector (quaternion) at 15–480 Hz through the FIFO. The F103 has no hardware floating point, so this saves it doing the orientation math.

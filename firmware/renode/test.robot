@@ -75,6 +75,17 @@ IMU WHO_AM_I And Sample
     Write Line To Uart        i2cscan
     Wait For Line On Uart     ^I2C1: 0x6A\\s*$    treatAsRegex=true
 
+Stream Prints Raw IMU Samples
+    Start Emulation
+    Wait For Line On Uart     ${PROMPT}
+    Execute Command           sysbus.i2c1.imu AccX -16384
+    Execute Command           sysbus.i2c1.imu GyroZ 1000
+    Write Line To Uart        stream 50
+    Wait For Line On Uart     stream: 50 Hz
+    Wait For Line On Uart     ^S \\d+ -16384 -?\\d+ -?\\d+ -?\\d+ -?\\d+ 1000\\s*$    treatAsRegex=true
+    Write Line To Uart        x    waitForEcho=false
+    Wait For Line On Uart     stream stopped
+
 Tap Double-Tap And Wake On INT1
     Boot To Prompt
     Execute Command           sysbus.i2c1.imu Tap

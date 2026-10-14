@@ -316,6 +316,7 @@ void usb_cdc_poll(void) {
     }
 }
 
+int usb_cdc_connected(void) { return configured && dtr; }
 int usb_cdc_tx_idle(void) { return tx_head == tx_tail && !tx_busy; }
 
 int usb_cdc_take_open_event(void) {

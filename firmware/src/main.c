@@ -225,7 +225,7 @@ static int imu_init(void) {
     static const uint8_t cfg[][2] = {
         {0x12, 0x44},              /* CTRL3: BDU, IF_INC */
         {0x10, 0x08},              /* CTRL1: accel 480 Hz high-performance (tap wants >= 400 Hz) */
-        {0x11, 0x06},              /* CTRL2: gyro 120 Hz */
+        {0x11, 0x08},              /* CTRL2: gyro 480 Hz (fresh data for every `stream` sample) */
         {0x15, 0x04},              /* CTRL6: +-2000 dps */
         {0x17, 0x00},              /* CTRL8: +-2 g */
         {0x56, 0x0F},              /* TAP_CFG0: tap X/Y/Z, latched (LIR) */
@@ -258,6 +258,31 @@ static void imu_sample(void) {
            v[4] * 61 / 1000, v[5] * 61 / 1000, v[6] * 61 / 1000,
            v[1] * 70 / 1000, v[2] * 70 / 1000, v[3] * 70 / 1000,
            t10 < 0 ? "-" : "", abs(t10) / 10, abs(t10) % 10, v[4], v[5], v[6]);
+}
+
+/* Raw samples at a fixed rate for the host-side viewer (firmware/imu_viewer.py) until any key. They go
+ * to USB alone while a terminal has the USB port open, so USART1's 115200 baud doesn't pace them. */
+static void cmd_stream(uint32_t hz) {
+    if (!imu_ok && !(imu_ok = imu_init())) { printf("IMU: not available\n"); return; }
+    if (hz < 1 || hz > 500) hz = 200;
+    uint32_t period = 1000 / hz, next = millis();
+    printf("stream: %lu Hz; S ms ax ay az (0.061 mg/LSB) gx gy gz (70 mdps/LSB); any key stops\n",
+           (unsigned long)(1000 / period));
+    while (getch() < 0) {
+        while ((int32_t)(millis() - next) < 0) {}
+        uint32_t t = next;
+        next += period;
+        if ((int32_t)(millis() - next) > 100) next = millis();  /* fell behind (host not reading): resync */
+        uint8_t b[12];                                          /* OUTX_L_G..OUTZ_H_A */
+        if (i2c_read(IMU_ADDR, 0x22, b, 12)) continue;
+        int16_t v[6];
+        for (int i = 0; i < 6; i++) v[i] = (int16_t)(b[2 * i] | b[2 * i + 1] << 8);
+        char s[64];
+        int n = snprintf(s, sizeof s, "S %lu %d %d %d %d %d %d\r\n", (unsigned long)t, v[3], v[4], v[5], v[0], v[1], v[2]);
+        if (usb_on && usb_cdc_connected()) usb_cdc_write(s, n);
+        else { s[n - 2] = '\n'; s[n - 1] = 0; printf("%s", s); }
+    }
+    printf("stream stopped\n");
 }
 
 static void imu_event(void) {
@@ -438,9 +463,10 @@ static void run(char *line) {
     char *cmd = strtok(line, " "), *arg = strtok(NULL, " ");
     if (!cmd) return;
     if (!strcmp(cmd, "help"))
-        printf("info | pins | walk [ms] [all] | mon | imu | i2cscan | mco [hse|pll|hsi|off] | adc | standby | reset | dfu\n"
+        printf("info | pins | walk [ms] [all] | mon | imu | stream [hz] | i2cscan | mco [hse|pll|hsi|off] | adc | standby | reset | dfu\n"
                "  walk: drive each header GPIO high then low, check readback + shorts (all = include SWD)\n"
                "  mon:  print header input changes (jumper a pin to 3V3 to test it)\n"
+               "  stream: raw IMU samples for firmware/imu_viewer.py (default 200 Hz; any key stops)\n"
                "  dfu:  reboot into the USB DFU bootloader (then: make dfu, or dfu-util -d 1209:db42 -D app.bin)\n");
     else if (!strcmp(cmd, "info") || !strcmp(cmd, "clock")) print_info();
     else if (!strcmp(cmd, "pins")) print_pins();
@@ -452,6 +478,7 @@ static void run(char *line) {
     }
     else if (!strcmp(cmd, "mon")) cmd_mon();
     else if (!strcmp(cmd, "imu")) { if (!imu_ok) imu_ok = imu_init(); imu_sample(); }
+    else if (!strcmp(cmd, "stream")) cmd_stream(arg ? strtoul(arg, NULL, 0) : 200);
     else if (!strcmp(cmd, "i2cscan")) {
         printf("I2C1:");
         for (int a = 0x08; a < 0x78; a++) if (i2c_probe(a)) printf(" 0x%02X", a);

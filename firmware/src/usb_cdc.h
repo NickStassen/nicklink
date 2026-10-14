@@ -9,4 +9,5 @@ void usb_cdc_init(const char *product);    /* SYSCLK must be 72 MHz from HSE (US
 void usb_cdc_write(const char *p, int n);  /* queued; dropped while no terminal has the port open (DTR low) */
 void usb_cdc_poll(void);                   /* main loop: resume USB input once the console has room again */
 int usb_cdc_take_open_event(void);         /* 1 once each time a terminal opens the port */
+int usb_cdc_connected(void);               /* configured, and a terminal has the port open (DTR) */
 int usb_cdc_tx_idle(void);                 /* everything written so far has reached the PC */
