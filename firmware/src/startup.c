@@ -1,12 +1,13 @@
 /* Minimal Cortex-M3 startup for STM32F103: vector table, .data/.bss init. */
 #include <stdint.h>
 #include "regs.h"
-extern uint32_t _sidata, _sdata, _edata, _sbss, _ebss, _estack;
+extern uint32_t _sidata, _sdata, _edata, _sbss, _ebss, _estack, __vectors_start;
 int main(void);
-void NMI_Handler(void), SysTick_Handler(void), USART1_IRQHandler(void), EXTI0_IRQHandler(void);
+void NMI_Handler(void), SysTick_Handler(void), USART1_IRQHandler(void), EXTI0_IRQHandler(void), USB_LP_IRQHandler(void);
 
 void Reset_Handler(void) {
-    SCB_VTOR = 0x08000000;  /* a bootloader GO (stm32flash -g) leaves VTOR at the ROM; fix before any interrupt */
+    /* our own table (0x08002000, after the DFU bootloader): don't trust what a bootloader left in VTOR */
+    SCB_VTOR = (uint32_t)&__vectors_start;
     for (uint32_t *s = &_sidata, *d = &_sdata; d < &_edata;) *d++ = *s++;
     for (uint32_t *d = &_sbss; d < &_ebss;) *d++ = 0;
     main();
@@ -25,6 +26,7 @@ static void (*const vectors[16 + 38])(void) = {
     [3 ... 6] = Fault_Handler,               /* HardFault, MemManage, BusFault, UsageFault */
     [15] = SysTick_Handler,
     [16 + 6] = EXTI0_IRQHandler,
+    [16 + 20] = USB_LP_IRQHandler,               /* USB low priority / CAN1 RX0 */
     [16 + 37] = USART1_IRQHandler,
 };
 

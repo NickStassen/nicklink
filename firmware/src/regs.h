@@ -51,11 +51,21 @@
 #define I2C1_CCR     R32(0x4000541C)
 #define I2C1_TRISE   R32(0x40005420)
 
+#define USB_BASE     0x40005C00u
+#define USB_EPR(n)   R32(USB_BASE + 4u * (n))
+#define USB_CNTR     R32(USB_BASE + 0x40)
+#define USB_ISTR     R32(USB_BASE + 0x44)
+#define USB_DADDR    R32(USB_BASE + 0x4C)
+#define USB_BTABLE   R32(USB_BASE + 0x50)
+#define USB_PMA      0x40006000u        /* 512 B packet memory, 16 bits per 32-bit word */
+#define BKP_DR1      R32(0x40006C04)    /* backup domain: survives reset, not power-off */
+
 #define SYST_CSR     R32(0xE000E010)
 #define SYST_RVR     R32(0xE000E014)
 #define SYST_CVR     R32(0xE000E018)
 #define NVIC_ISER0   R32(0xE000E100)
 #define NVIC_ISER1   R32(0xE000E104)
+#define NVIC_ICER0   R32(0xE000E180)
 #define SCB_VTOR     R32(0xE000ED08)
 #define SCB_SCR      R32(0xE000ED10)
 #define SCB_AIRCR    R32(0xE000ED0C)
