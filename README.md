@@ -107,6 +107,38 @@ The LSM6DSV is a 6-axis IMU: accelerometer up to ±16 g, gyroscope up to ±4000 
 - **Address:** I2C1 at 0x6A (SA0 tied low); CS is tied high for I2C mode.
 - **Interrupt:** INT1 goes to PA0. PA0 is also the STM32's WKUP pin, so a tap or motion interrupt (rising edge) can wake the MCU from Standby.
 
+### Axes
+
+The IMU is placed at 0°, so its axes line up with the board and its readings need no remapping. Seen from the top with USB-C at the top edge (the same view as the [header pinout](#header-pinout)):
+
+```
+             USB-C
+      +------[___]------+
+      | J3           J1 |        +Y  toward USB-C
+      | o o         o o |         ^
+      | o o  [MCU]  o o |         |
+      | o o     [U4]o o |         +----> +X  toward J1
+      | o o         o o |        +Z  out of the component side, toward you
+      +-----------------+
+```
+
+- **+X** points right, toward J1.
+- **+Y** points up, toward the USB-C connector.
+- **+Z** points out of the component side.
+
+The axes are right-handed, and the gyroscope follows the right-hand rule. For example, positive gz is a counter-clockwise turn as seen from above. The accelerometer measures the reaction to gravity, so whichever axis points up reads +1 g:
+
+| Board position | Reads +1 g on |
+|---|---|
+| Flat, components up | +Z |
+| Flat, upside down | −Z |
+| USB-C pointing up | +Y |
+| USB-C pointing down | −Y |
+| On its J3 edge (J1 up) | +X |
+| On its J1 edge (J3 up) | −X |
+
+The "flat" and "USB-C up" rows were measured on a v1.3 board; the rest follow from the right-handed axes. The test firmware's `imu` command prints accel and gyro in these axes.
+
 Features useful here:
 - **On-chip sensor fusion (SFLP):** outputs a game rotation vector (quaternion) at 15–480 Hz through the FIFO. The F103 has no hardware floating point, so this saves it doing the orientation math.
 - **Hardware event detection:** tap, double-tap, wake-up, free-fall and 6D-orientation events, routable to INT1 (MD1_CFG 5Eh, with INTERRUPTS_ENABLE set in FUNCTIONS_ENABLE 50h). This covers tap-activated projects without polling.
