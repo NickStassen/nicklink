@@ -12,6 +12,12 @@ NickLink is a compact STM32F103C8T6 development and breakout board. Version 1.3 
 
 </details>
 
+**Real boards: v1.0 (left) vs v1.3 (right)**
+
+![v1.0 and v1.3 boards, front](docs/images/photo-v1.0-vs-v1.3-front.jpg)
+
+![v1.0 and v1.3 boards, back](docs/images/photo-v1.0-vs-v1.3-back.jpg)
+
 **New board?** Follow the [bring-up guide](docs/BRINGUP.md): wiring for an STLINK-V3MINIE, a prebuilt USB DFU bootloader and test firmware, and a checklist for every part. After one ST-Link flash, the board is updated and tested over USB-C alone.
 
 ## What changed
